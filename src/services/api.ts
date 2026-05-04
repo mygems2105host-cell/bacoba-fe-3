@@ -143,6 +143,27 @@ export const editProduct = async (id: string, params: Partial<EditProductParams>
   }
 };
 
+export interface RenameProductParams {
+  name: string;
+}
+
+/**
+ * Đổi tên sản phẩm
+ * @param id ID của sản phẩm (ví dụ: AKG000005)
+ * @param name Tên mới của sản phẩm
+ */
+export const renameProduct = async (id: string, name: string) => {
+  try {
+    const response = await apiClient.put<ProductsApiResponse>(
+      `/products/${id}/rename`,
+      { name } // Body gửi lên theo dạng { "name": "..." }
+    );
+    return response.data;
+  } catch (error) {
+    console.error(`Error renaming product with ID ${id}:`, error);
+    throw error;
+  }
+};
 
 
 // product Type
@@ -263,6 +284,27 @@ export const getAttributes = async () => {
     console.error("Error fetching products:", error);
     throw error;
   }
+};
+export interface CreateAttributeApiResponse {
+  success: boolean;
+  message: string;
+  data: Attribute;
+}
+
+export const createAttribute = async (data: CreateAttributeInput) => {
+  try {
+    const response = await apiClient.post<CreateAttributeApiResponse>("/attributes", data);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating attribute:", error);
+    throw error;
+  }
+};
+
+export type CreateAttributeInput = {
+  attributeTypeId: string | number;
+  value: string;
+  status?: string; // Optional tùy theo logic backend của bạn
 };
 
 // received-notes

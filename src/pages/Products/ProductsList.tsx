@@ -16,10 +16,13 @@ import {
   // ArrowRight,
   ChevronDown,
   ChevronRight,
+  Edit,
   // Edit,
   MoreHorizontal,
+  Plus,
   // Plus,
   RefreshCcw,
+  Trash2,
   // Trash2,
 } from "lucide-react";
 import {
@@ -36,6 +39,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   // DropdownMenuLabel,
   // DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -53,10 +58,15 @@ import {
   getAttributes,
   getProductTypes,
   getProducts,
+  createProductType,
+  createAttribute, // Giả định service này tồn tại trong api.ts
   // type GetProductsParams,
 } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import EditVariantDialog from "@/components/products/EditVariantDialog";
+import { toast } from "sonner"; // Hoặc thư viện thông báo bạn đang dùng
+import RenameProductDialog from "@/components/products/RenameProductDialog";
+import AddMoreVariantsDialog from "@/components/products/AddMoreVariantsDialog";
 
 function ProductsList() {
   interface Option {
@@ -72,13 +82,13 @@ function ProductsList() {
   const [, setError] = useState<string | null>(null);
 
   // Pagination & Filter States
-  const [currentPage, ] = useState(1);
-  const [pageSize, ] = useState(10);
+  const [currentPage] = useState(1);
+  const [pageSize] = useState(10);
   const [, setTotalPages] = useState(1);
   const [, setTotalItems] = useState(0);
-  const [search, ] = useState("");
+  const [search] = useState("");
 
-  const [selectedTypes, ] = useState<Option[]>([]);
+  const [selectedTypes] = useState<Option[]>([]);
   // const [selectedSizes, setselectedSizes] = useState<Option[]>([]);
   // const [selectedColors, setselectedColors] = useState<Option[]>([]);
   // const [selectedProviders, setselectedProviders] = useState<Option[]>([]);
@@ -223,6 +233,62 @@ function ProductsList() {
     );
   };
 
+  // Hàm thêm mới loại sản phẩm nhanh từ Combobox
+  const handleAddNewProductType = async (name: string) => {
+    try {
+      const res = await createProductType({ name });
+      if (res.success && res.data) {
+        toast.success(`Đã thêm nhóm hàng: ${name}`);
+
+        // Ép kiểu 'res.data' về 'any' để lấy id và name
+        const data = res.data as any;
+
+        const newItem: Option = {
+          id: String(data.id),
+          name: data.name || name,
+        };
+
+        setSelectedProductTypes((prev) => [...prev, newItem]);
+        await fetchStaticMetadata();
+      }
+    } catch (err) {
+      console.error("Lỗi:", err);
+      toast.error("Không thể thêm nhóm hàng");
+    }
+  };
+
+  // --- Logic Xử lý Thêm Attribute nhanh ---
+  const handleAddNewAttribute = async (
+    value: string,
+    attributeTypeId: string
+  ) => {
+    try {
+      const res = await createAttribute({ value, attributeTypeId });
+
+      if (res.success && res.data) {
+        toast.success(`Đã thêm giá trị: ${value}`);
+
+        // Ép kiểu 'res.data' về 'any'
+        const data = res.data as any;
+
+        const newItem: Option = {
+          id: String(data.id),
+          name: data.value || value, // Thường attribute dùng field 'value' thay vì 'name'
+        };
+
+        setSelectedAttributes((prev) => ({
+          ...prev,
+          [attributeTypeId]: [...(prev[attributeTypeId] || []), newItem],
+        }));
+
+        await fetchAttributesData();
+      }
+    } catch (err) {
+      console.error("Lỗi:", err);
+      toast.error("Không thể thêm giá trị mới");
+    }
+  };
+
   if (loading)
     return (
       <div className="w-full h-full p-5 flex flex-wrap gap-y-6 bg-background">
@@ -362,6 +428,7 @@ function ProductsList() {
             attributeTypes={attributeTypes}
             productTypes={productTypes}
             onSuccess={fetchProductsData}
+            refetchAttributes={fetchAttributesData}
           />
           <Button
             variant={"ghost"}
@@ -370,7 +437,10 @@ function ProductsList() {
           >
             <RefreshCcw className={loading ? "animate-spin" : ""} />
           </Button>
-          <AddNewReceivedNote selectedProducts={selectedVariants} onSuccess={handleClearSelection} />
+          <AddNewReceivedNote
+            selectedProducts={selectedVariants}
+            onSuccess={handleClearSelection}
+          />
         </div>
       </div>
 
@@ -386,6 +456,8 @@ function ProductsList() {
               options={productTypeOptions}
               selected={selectedProductTypes}
               onChange={(val) => setSelectedProductTypes(val)}
+              onAdd={handleAddNewProductType} // Thêm hàm tạo nhanh tại đây
+              showAddOption={true}
               placeholder="Chọn nhóm hàng..."
             />
           </div>
@@ -425,6 +497,8 @@ function ProductsList() {
                     <TagCombobox
                       options={optionsForType}
                       selected={selectedAttributes[type.id] || []}
+                      onAdd={(value) => handleAddNewAttribute(value, type.id)}
+                      showAddOption={true}
                       onChange={(val) =>
                         setSelectedAttributes((prev) => ({
                           ...prev,
@@ -573,7 +647,7 @@ function ProductsList() {
                       </TableCell>
 
                       <TableCell className="text-center">
-                        {/* <DropdownMenu>
+                        <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
@@ -589,25 +663,38 @@ function ProductsList() {
                             <DropdownMenuLabel className="text-muted-foreground">
                               Hành động
                             </DropdownMenuLabel>
-                            {/* <DropdownMenuItem
-                              onClick={() => console.log("Edit", product.id)}
-                            >
-                              <Edit className="mr-2 h-4 w-4" /> Chỉnh sửa hàng
-                              hóa
-                            </DropdownMenuItem> 
                             <DropdownMenuItem
-                              onClick={() =>
-                                console.log("Add variant", product.id)
-                              }
+                              onSelect={(e) => {
+                                e.preventDefault();
+                              }}
+                              asChild
                             >
-                              <Plus className="mr-2 h-4 w-4" /> Thêm biến thể
+                              <RenameProductDialog
+                                product={product}
+                                onSuccess={fetchProductsData}
+                              />
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-border" />
-                            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                            <DropdownMenuItem
+                              onSelect={(e) => {
+                                e.preventDefault();
+                              }}
+                              asChild
+                              
+                            >
+                              <AddMoreVariantsDialog
+                                product={product}
+                                attributeTypes={attributeTypes}
+                                attributes={attributes}
+                                onSuccess={fetchProductsData}
+                                refetchAttributes={fetchAttributesData}
+                              />
+                            </DropdownMenuItem>
+                            {/* <DropdownMenuSeparator className="bg-border" /> */}
+                            {/* <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
                               <Trash2 className="mr-2 h-4 w-4" /> Xóa hàng
-                            </DropdownMenuItem>
+                            </DropdownMenuItem> */}
                           </DropdownMenuContent>
-                        </DropdownMenu> */}
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
 
@@ -663,10 +750,9 @@ function ProductsList() {
                                 >
                                   <DropdownMenuItem
                                     onSelect={(e) => {
-                                      e.preventDefault(); 
+                                      e.preventDefault();
                                     }}
                                   >
-                                    
                                     <EditVariantDialog
                                       variant={variant}
                                       onSuccess={fetchProductsData}

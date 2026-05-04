@@ -211,9 +211,13 @@ function ProvidersList() {
                 <TableHead className="font-bold text-foreground">
                   Tên nhà cung cấp
                 </TableHead>
+                <TableHead className="text-left font-bold text-foreground">
+                  Email
+                </TableHead>
                 <TableHead className="text-right font-bold text-foreground">
                   Điện thoại
                 </TableHead>
+                
                 <TableHead className="text-right font-bold text-foreground">
                   Tổng mua
                 </TableHead>
@@ -234,12 +238,14 @@ function ProvidersList() {
                 <>
                   {/* HÀNG TỔNG CỘNG */}
                   <TableRow className="bg-muted/50 hover:bg-muted/50 border-t-2 border-border font-bold">
+                    
                     <TableCell
-                      colSpan={5}
+                      colSpan={6}
                       className="text-right text-foreground py-4"
                     >
                       Tổng cộng:
                     </TableCell>
+                    
                     <TableCell className="text-right text-foreground">
                       {grandTotalBuy.toLocaleString()}
                     </TableCell>
@@ -304,9 +310,13 @@ function ProvidersList() {
                           <TableCell className="text-sm font-bold text-primary">
                             {prov.name}
                           </TableCell>
+                          <TableCell className="text-left text-sm">
+                            {prov.email|| "---"}
+                          </TableCell>
                           <TableCell className="text-right text-sm">
                             {prov.phoneNumber || "---"}
                           </TableCell>
+                          
                           <TableCell className="text-right">
                             {prov.total.toLocaleString()}
                           </TableCell>

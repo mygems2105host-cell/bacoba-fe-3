@@ -8,6 +8,7 @@ import BillsList from "@/pages/Bill/BillsList";
 import SalePOS from "@/pages/Sale/SalePOS";
 import PublicRouters from "./PublicRouters";
 import PrivateRoutes from "./PrivateRouters";
+import BillStatistic from "@/pages/Bill/BillStatistic";
 
 function AppRoutes() {
   return (
@@ -23,6 +24,7 @@ function AppRoutes() {
         <Route path="/providers" element={<ProvidersList />} />
         <Route path="/sale" element={<SalePOS />} />
         <Route path="/bills" element={<BillsList />} />
+        <Route path="/bills-statistic" element={<BillStatistic />} />
       </Route>
     </Routes>
   );

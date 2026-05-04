@@ -55,21 +55,22 @@ const parseNumber = (val: string) => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
-
 const formSchema = z.object({
   id: z.coerce.string(), // Tự động biến number thành string
   providerId: z.coerce.string().min(1, "Vui lòng chọn nhà cung cấp"),
   createdAt: z.string(),
-  receivedProducts: z.array(
-    z.object({
-      id: z.coerce.string(), // Sửa ở đây nữa
-      productId: z.coerce.string(), // Và ở đây
-      productName: z.string(),
-      addQuantity: z.number().min(1, "Tối thiểu 1"),
-      price: z.number().min(0),
-      discount: z.number().min(0),
-    })
-  ).min(1, "Chưa có sản phẩm nào trong phiếu"),
+  receivedProducts: z
+    .array(
+      z.object({
+        id: z.coerce.string(), // Sửa ở đây nữa
+        productId: z.coerce.string(), // Và ở đây
+        productName: z.string(),
+        addQuantity: z.number().min(1, "Tối thiểu 1"),
+        price: z.number().min(0),
+        discount: z.number().min(0),
+      })
+    )
+    .min(1, "Chưa có sản phẩm nào trong phiếu"),
   totalDiscount: z.number().min(0),
   paidAmount: z.number().min(0),
   description: z.string().optional(),
@@ -119,7 +120,13 @@ export function EditReceivedNote({
     },
   });
 
-  const { control, handleSubmit, setValue, reset, formState: {  } } = form;
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: {},
+  } = form;
   const { fields, remove } = useFieldArray({
     control,
     name: "receivedProducts",
@@ -142,7 +149,8 @@ export function EditReceivedNote({
             discount: 0,
           })) || [],
         totalDiscount: receivedNote.discount || 0,
-        paidAmount: (receivedNote.total || 0) - (receivedNote.discount || 0),
+        // Giả sử API của bạn trả về trường tiền đã trả tên là payedMoney hoặc paidAmount
+        paidAmount: receivedNote.payedMoney || 0,
         description: receivedNote.description || "",
       });
     }
@@ -233,7 +241,9 @@ export function EditReceivedNote({
         <Form {...form}>
           <form
             // onSubmit={handleSubmit(onSubmit)}
-            onSubmit={handleSubmit(onSubmit, (err) => console.log("Lỗi đây nè:", err))}
+            onSubmit={handleSubmit(onSubmit, (err) =>
+              console.log("Lỗi đây nè:", err)
+            )}
             className="flex flex-1 min-h-0 overflow-hidden"
             onKeyDown={handleKeyDown}
           >

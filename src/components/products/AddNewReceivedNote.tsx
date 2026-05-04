@@ -37,12 +37,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Plus, Trash2, PackagePlus, ArrowRight, Save } from "lucide-react";
 import {
+  createProviders,
   createReceivedNote,
   getProviders,
   type CreateReceivedNoteParams,
 } from "@/services/api";
 import { toast } from "sonner";
 import type { Provider } from "@/types";
+import { SingleCombobox } from "../ui/SingleCombobox";
 
 interface SelectedProduct {
   id: string;
@@ -176,22 +178,22 @@ export function AddNewReceivedNote({
 
     try {
       const apiParams: CreateReceivedNoteParams = {
-      providerId: data.providerId,
-      phoneNumber: "",
-      description: data.description || "",
-      discount: data.totalDiscount,
-      payedMoney: data.paidAmount,
-      debtMoney: totals.debt,
-      total: totals.totalAmount,
-      status: "draft",
-      receivedProducts: data.receivedProducts.map((p) => ({
-        productId: p.id,
-        addQuantity: p.addQuantity,
-        discount: p.discount,
-        description: p.name,
-        total: (p.price - p.discount) * p.addQuantity,
-      })),
-    };
+        providerId: data.providerId,
+        phoneNumber: "",
+        description: data.description || "",
+        discount: data.totalDiscount,
+        payedMoney: data.paidAmount,
+        debtMoney: totals.debt,
+        total: totals.totalAmount,
+        status: "draft",
+        receivedProducts: data.receivedProducts.map((p) => ({
+          productId: p.id,
+          addQuantity: p.addQuantity,
+          discount: p.discount,
+          description: p.name,
+          total: (p.price - p.discount) * p.addQuantity,
+        })),
+      };
 
       await createReceivedNote(apiParams);
       toast.info("Đã lưu bản nháp");
@@ -199,8 +201,8 @@ export function AddNewReceivedNote({
         onSuccess();
       }
       form.reset(); // Xóa trắng form sau khi tạo thành công
-        // Thêm logic đóng Dialog hoặc điều hướng nếu cần
-        setOpen(false);
+      // Thêm logic đóng Dialog hoặc điều hướng nếu cần
+      setOpen(false);
     } catch (error) {
       toast.error("Không thể lưu nháp");
     }
@@ -242,6 +244,33 @@ export function AddNewReceivedNote({
     } catch (error) {
       console.error("Lỗi khi tạo phiếu:", error);
       toast.error("Có lỗi xảy ra khi gửi yêu cầu. Vui lòng kiểm tra lại.");
+    }
+  };
+
+  // Thêm vào trong AddNewReceivedNote
+  const handleQuickAddProvider = async (name: string) => {
+    try {
+      const res = await createProviders({
+        name,
+        status: "active",
+        debtTotal: 0,
+        total: 0,
+      });
+  
+      if (res.success && res.data) {
+        toast.success("Đã tạo nhà cung cấp mới");
+        await fetchData();
+  
+        // SỬA TẠI ĐÂY: 
+        // Nếu res.data là đối tượng mới tạo:
+        const newProvider = Array.isArray(res.data) ? res.data[0] : res.data;
+        
+        if (newProvider?.id) {
+          setValue("providerId", newProvider.id.toString());
+        }
+      }
+    } catch (error) {
+      toast.error("Không thể thêm nhanh nhà cung cấp");
     }
   };
 
@@ -404,37 +433,22 @@ export function AddNewReceivedNote({
                         control={control}
                         name="providerId"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="flex flex-col">
                             <FormLabel className="font-bold text-foreground">
                               Nhà cung cấp
                             </FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger className="bg-background">
-                                  <SelectValue placeholder="Chọn nhà cung cấp" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {/* Lặp qua danh sách providers từ API */}
-                                {providers.length > 0 ? (
-                                  providers.map((prov) => (
-                                    <SelectItem
-                                      key={prov.id}
-                                      value={prov.id.toString()}
-                                    >
-                                      {prov.name}
-                                    </SelectItem>
-                                  ))
-                                ) : (
-                                  <div className="p-2 text-sm text-muted-foreground text-center">
-                                    Đang tải danh sách...
-                                  </div>
-                                )}
-                              </SelectContent>
-                            </Select>
+                            <FormControl>
+                              <SingleCombobox
+                                options={providers.map((p) => ({
+                                  id: p.id.toString(),
+                                  name: p.name,
+                                }))}
+                                value={field.value}
+                                onChange={field.onChange}
+                                onAdd={handleQuickAddProvider}
+                                placeholder="Chọn hoặc tìm kiếm..."
+                              />
+                            </FormControl>
                           </FormItem>
                         )}
                       />

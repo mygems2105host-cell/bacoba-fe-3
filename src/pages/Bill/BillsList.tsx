@@ -17,6 +17,7 @@ import {
   Undo2,
   FileText,
   ArrowRightLeft,
+  RotateCcw,
 } from "lucide-react";
 import {
   Table,
@@ -38,7 +39,7 @@ function BillsList() {
   }
 
   const statusOptions: Option[] = [
-    { id: "active", name: "Hoàn thành" },
+    { id: "completed", name: "Hoàn thành" },
     { id: "cancelled", name: "Hủy" },
     { id: "returned", name: "Trả hàng" },
   ];
@@ -116,6 +117,7 @@ function BillsList() {
   const getStatusStyle = (status: string) => {
     switch (status) {
       case "active":
+      case "completed":
         return "text-success bg-success/10 px-2 py-1 rounded-full text-xs font-semibold uppercase tracking-wider";
       case "cancelled":
         return "text-destructive bg-destructive/10 px-2 py-1 rounded-full text-xs font-semibold uppercase tracking-wider";
@@ -211,7 +213,9 @@ function BillsList() {
                 <TableHead className="text-center font-bold text-foreground">
                   Trạng thái
                 </TableHead>
-                <TableHead className="w-[50px]"></TableHead>
+                <TableHead className="text-right font-bold text-foreground pr-6">
+                  Thao tác
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -298,7 +302,30 @@ function BillsList() {
                             ?.name || bill.status}
                         </span>
                       </TableCell>
-                      <TableCell></TableCell>
+                      {/* <TableCell className="text-right">
+                        <div className="flex justify-end gap-2 pr-2">
+                          {(bill.status === "active" || bill.status === "completed") && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-primary hover:bg-primary/10"
+                                title="Đổi hàng"
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                                title="Trả hàng"
+                              >
+                                <Undo2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell> */}
                     </TableRow>
 
                     {/* DETAILS EXPANDED */}
@@ -419,14 +446,22 @@ function BillsList() {
                             </div>
 
                             {/* ACTION BUTTONS */}
-                            {bill.status === "active" && (
+                            {(bill.status === "active" || bill.status === "completed") && (
                               <div className="flex justify-end items-center gap-3 mt-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="flex items-center gap-2 hover:bg-muted font-medium"
+                                  className="flex items-center gap-2 hover:bg-muted font-medium border-secondary text-seconborder-secondary"
                                 >
-                                  <FileText className="w-4 h-4 text-primary" />
+                                  <FileText className="w-4 h-4" />
+                                  Chỉnh sửa thông tin
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex items-center gap-2 hover:bg-muted font-medium border-primary text-primary"
+                                >
+                                  <FileText className="w-4 h-4" />
                                   Đổi hàng
                                 </Button>
                                 <Button

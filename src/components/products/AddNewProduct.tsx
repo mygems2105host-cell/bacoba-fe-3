@@ -54,7 +54,7 @@ import {
   type Attribute,
 } from "@/types";
 import TagCombobox from "../ui/TagCombobox";
-import { createProduct, type CreateProductParams } from "@/services/api";
+import { createAttribute, createProduct, type CreateProductParams } from "@/services/api";
 import { toast } from "sonner";
 
 // Helper format số cho hiển thị
@@ -76,6 +76,7 @@ interface ManageAttributeTypesProps {
   attributes: Attribute[];
 
   onSuccess?: () => void;
+  refetchAttributes?: () => void;
 }
 
 function AddNewProduct({
@@ -84,6 +85,7 @@ function AddNewProduct({
 
   attributes,
   onSuccess,
+  refetchAttributes,
 }: ManageAttributeTypesProps) {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -280,6 +282,60 @@ function AddNewProduct({
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // const handleCreateAttribute = async (value: string, typeId: string) => {
+  //   try {
+  //     const newAttr = await createAttribute({
+  //       attributeTypeId: typeId,
+  //       value: value,
+  //     });
+      
+  //     toast.success(`Đã thêm giá trị "${value}"`);
+      
+  //     // Quan trọng: Sau khi tạo thành công ở Server, bạn cần cập nhật lại list attributes 
+  //     // đang hiển thị ở component này. Thông thường là gọi lại API lấy danh sách ở component cha.
+  //     if (refetchAttributes) refetchAttributes(); 
+      
+  //     return newAttr; // Trả về để Combobox có thể chọn luôn giá trị vừa tạo
+  //   } catch (error) {
+  //     toast.error("Không thể thêm thuộc tính mới");
+  //   }
+  // };
+
+  // Hàm xử lý tạo nhanh ngay tại chỗ
+  const handleCreateAttribute = async (
+    value: string,
+    typeId: string,
+    currentSelected: any[],
+    onChange: (val: any[]) => void
+  ) => {
+    try {
+      // Ép kiểu 'any' ở đây để vượt qua kiểm tra của TS nếu bạn chưa rảnh update interface
+      const response = (await createAttribute({
+        attributeTypeId: typeId,
+        value: value,
+      })) as any; 
+  
+      // Lấy ID và Value từ response (kiểm tra lại cấu trúc trả về của Server nhé)
+      const newId = response.id || response.data?.id;
+      const newValue = response.value || response.data?.value || value;
+  
+      const newAttrFormatted = {
+        id: String(newId),
+        name: newValue,
+      };
+  
+      // Cập nhật form: Thêm cái mới vào danh sách đang chọn
+      onChange([...currentSelected, newAttrFormatted]);
+  
+      toast.success(`Đã thêm và chọn: ${value}`);
+      
+      if (refetchAttributes) refetchAttributes();
+    } catch (error) {
+      console.error(error);
+      toast.error("Không thể tạo thuộc tính mới");
     }
   };
 
@@ -519,6 +575,14 @@ function AddNewProduct({
                                     }))}
                                   selected={field.value || []}
                                   onChange={field.onChange}
+                                  onAdd={(newValue) =>
+                                    handleCreateAttribute(
+                                      newValue,
+                                      item.typeId,
+                                      field.value || [],
+                                      field.onChange // Truyền hàm này để nó set state cho form luôn
+                                    )
+                                  }
                                   placeholder={`Chọn ${item.typeName}...`}
                                 />
                               </div>

@@ -62,6 +62,11 @@ function AppHeader() {
       title: "Danh sách hóa đơn",
       href: "/bills",
       description: "Tra cứu, quản lý và in lại các hóa đơn đã thanh toán.",
+    },
+    {
+      title: "Thống kê doanh thu",
+      href: "/bills-statistic",
+      description: "Tra cứu, quản lý doanh thu",
     }
   ];
   
