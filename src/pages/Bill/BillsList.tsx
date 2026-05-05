@@ -32,6 +32,7 @@ import TagCombobox from "@/components/ui/TagCombobox";
 import { getBills, type BillsApiResponse } from "@/services/api";
 import type { Bill } from "@/types";
 import { ExchangeBill } from "@/components/bill/ExchangeBill";
+import { EditBill } from "@/components/bill/EditBill";
 
 function BillsList() {
   interface Option {
@@ -457,6 +458,7 @@ function BillsList() {
                                   <FileText className="w-4 h-4" />
                                   Chỉnh sửa thông tin
                                 </Button>
+                                <EditBill bill={bill} onSuccess={fetchBills}/>
                                 
 
                                 <ExchangeBill
