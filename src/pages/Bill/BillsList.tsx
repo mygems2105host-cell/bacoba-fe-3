@@ -31,6 +31,7 @@ import React, { useEffect, useState } from "react";
 import TagCombobox from "@/components/ui/TagCombobox";
 import { getBills, type BillsApiResponse } from "@/services/api";
 import type { Bill } from "@/types";
+import { ExchangeBill } from "@/components/bill/ExchangeBill";
 
 function BillsList() {
   interface Option {
@@ -231,7 +232,7 @@ function BillsList() {
                       data-state={isBillSelected && "selected"}
                       className={
                         isExpanded
-                          ? "border-b-0 bg-primary/5"
+                          ? "border-b-0 bg-muted/30"
                           : "hover:bg-muted/30"
                       }
                     >
@@ -302,8 +303,8 @@ function BillsList() {
                             ?.name || bill.status}
                         </span>
                       </TableCell>
-                      {/* <TableCell className="text-right">
-                        <div className="flex justify-end gap-2 pr-2">
+                      <TableCell className="text-right">
+                        {/* <div className="flex justify-end gap-2 pr-2">
                           {(bill.status === "active" || bill.status === "completed") && (
                             <>
                               <Button
@@ -324,8 +325,8 @@ function BillsList() {
                               </Button>
                             </>
                           )}
-                        </div>
-                      </TableCell> */}
+                        </div> */}
+                      </TableCell>
                     </TableRow>
 
                     {/* DETAILS EXPANDED */}
@@ -456,14 +457,12 @@ function BillsList() {
                                   <FileText className="w-4 h-4" />
                                   Chỉnh sửa thông tin
                                 </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex items-center gap-2 hover:bg-muted font-medium border-primary text-primary"
-                                >
-                                  <FileText className="w-4 h-4" />
-                                  Đổi hàng
-                                </Button>
+                                
+
+                                <ExchangeBill
+                                  originalBill={bill}
+                                  onSuccess={fetchBills}
+                                />
                                 <Button
                                   variant="outline"
                                   size="sm"

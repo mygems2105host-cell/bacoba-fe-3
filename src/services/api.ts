@@ -166,6 +166,23 @@ export const renameProduct = async (id: string, name: string) => {
 };
 
 
+/**
+ * Thêm biến thể mới dựa trên danh sách thuộc tính được chọn
+ * URL: POST /products/{id}/variants
+ */
+export const addVariantsToProduct = async (productId: string | number, attributes: { id: number; attributeTypeId: number; value: string }[]) => {
+  try {
+    const response = await apiClient.post(
+      `/products/${productId}/variants`,
+      attributes // Gửi mảng phẳng theo đúng hình ảnh Postman
+    );
+    return response.data;
+  } catch (error) {
+    console.error(`Lỗi khi thêm biến thể cho sản phẩm ${productId}:`, error);
+    throw error;
+  }
+};
+
 // product Type
 export interface ProductTypesApiResponse {
   success: boolean;
@@ -620,6 +637,33 @@ export const getBillProducts = async () => {
     return response.data;
   } catch (error) {
     console.error("Error fetching bill products:", error);
+    throw error;
+  }
+};
+
+
+export interface ProductAttributeApiResponse {
+  success: boolean;
+  message: string;
+  data: {
+    id: number;
+    attributeTypeId: number;
+    value: string;
+  }[];
+}
+
+/**
+ * Lấy danh sách thuộc tính hiện có của một sản phẩm cha
+ * @param productId ID của sản phẩm cha
+ */
+export const getProductAttributes = async (productId: string | number) => {
+  try {
+    const response = await apiClient.get<ProductAttributeApiResponse>(
+      `/products/${productId}/variants`
+    );
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching attributes for product ${productId}:`, error);
     throw error;
   }
 };

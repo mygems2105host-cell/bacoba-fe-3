@@ -59,7 +59,8 @@ import {
   getProductTypes,
   getProducts,
   createProductType,
-  createAttribute, // Giả định service này tồn tại trong api.ts
+  createAttribute,
+  getProductAttributes, // Giả định service này tồn tại trong api.ts
   // type GetProductsParams,
 } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -89,6 +90,9 @@ function ProductsList() {
   const [search] = useState("");
 
   const [selectedTypes] = useState<Option[]>([]);
+  const [currentProductAttributes, setCurrentProductAttributes] = useState<
+    any[]
+  >([]);
   // const [selectedSizes, setselectedSizes] = useState<Option[]>([]);
   // const [selectedColors, setselectedColors] = useState<Option[]>([]);
   // const [selectedProviders, setselectedProviders] = useState<Option[]>([]);
@@ -286,6 +290,18 @@ function ProductsList() {
     } catch (err) {
       console.error("Lỗi:", err);
       toast.error("Không thể thêm giá trị mới");
+    }
+  };
+
+  const fetchCurrentProductAttributes = async (productId: string) => {
+    try {
+      const res = await getProductAttributes(productId);
+      if (res.success) {
+        setCurrentProductAttributes(res.data);
+      }
+    } catch (err) {
+      console.error("Lỗi lấy thuộc tính sản phẩm:", err);
+      setCurrentProductAttributes([]); // Reset nếu lỗi
     }
   };
 
@@ -679,14 +695,21 @@ function ProductsList() {
                                 e.preventDefault();
                               }}
                               asChild
-                              
                             >
                               <AddMoreVariantsDialog
                                 product={product}
                                 attributeTypes={attributeTypes}
                                 attributes={attributes}
+                                // Thêm prop mới này (giả định bạn sẽ khai báo prop này ở file con)
+                                existingProductAttributes={
+                                  currentProductAttributes
+                                }
                                 onSuccess={fetchProductsData}
                                 refetchAttributes={fetchAttributesData}
+                                // Kích hoạt fetch khi người dùng tương tác
+                                onOpen={() =>
+                                  fetchCurrentProductAttributes(product.id)
+                                }
                               />
                             </DropdownMenuItem>
                             {/* <DropdownMenuSeparator className="bg-border" /> */}

@@ -32,7 +32,7 @@ import { Plus, Loader2, Layers, AlertCircle } from "lucide-react";
 import { Input } from "../ui/input";
 import { type AttributeType, type Attribute, type Product } from "@/types";
 import TagCombobox from "../ui/TagCombobox";
-import { createAttribute } from "@/services/api";
+import { addVariantsToProduct, createAttribute } from "@/services/api";
 import { toast } from "sonner";
 
 // Helper format số
@@ -49,16 +49,20 @@ interface AddMoreVariantsProps {
   product: Product;
   attributeTypes: AttributeType[];
   attributes: Attribute[];
+  existingProductAttributes: any[]; // <--- Nhận mảng từ API bạn đã đưa
   onSuccess?: () => void;
   refetchAttributes?: () => void;
+  onOpen?: () => void; // <--- Thêm để trigger fetch từ cha
 }
 
 function AddMoreVariantsDialog({
   product,
   attributeTypes,
   attributes,
+  existingProductAttributes, // Nhận dữ liệu ở đây
   onSuccess,
   refetchAttributes,
+  onOpen,
 }: AddMoreVariantsProps) {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -162,37 +166,45 @@ function AddMoreVariantsDialog({
     replaceVariants,
   ]);
 
+  // Trong AddMoreVariantsDialog.tsx
+
   const onSubmit = async (data: FormValues) => {
     try {
       setLoading(true);
-      const variantsToCreate = data.variants.filter((v) => !v.isExisting);
 
-      if (variantsToCreate.length === 0) {
-        toast.error("Không có biến thể mới nào để thêm");
+      // 1. Chuyển đổi dữ liệu từ Form sang mảng phẳng như Postman yêu cầu
+      // Dữ liệu cũ: { typeId, selectedValues: [{id, name}] }
+      // Dữ liệu mới: [{ id, attributeTypeId, value }]
+      const apiPayload = data.attributes.flatMap((attrGroup) =>
+        attrGroup.selectedValues.map((val) => ({
+          id: Number(val.id),
+          attributeTypeId: Number(attrGroup.typeId),
+          value: val.name,
+        }))
+      );
+
+      if (apiPayload.length === 0) {
+        toast.error("Vui lòng chọn ít nhất một thuộc tính");
         return;
       }
 
-      const apiAttributes = data.attributes
-        .filter((attr) => attr.selectedValues.length > 0)
-        .map((attr) =>
-          attr.selectedValues.map((val) => ({ id: val.id, value: val.name }))
-        );
+      // 2. Gọi API
+      await addVariantsToProduct(product.id, apiPayload);
 
-      //   await addVariantsToProduct(product.id, {
-      //     attributes: apiAttributes,
-      //     variants: variantsToCreate.map(({ name, initialPrice, salePrice }) => ({
-      //       name, initialPrice, salePrice
-      //     })),
-      //   });
-
+      // 3. Xử lý thành công
       toast.success("Thành công", {
-        description: `Đã thêm ${variantsToCreate.length} biến thể.`,
+        description:
+          "Các biến thể mới đã được tạo dựa trên thuộc tính đã chọn.",
       });
+
       if (onSuccess) onSuccess();
       setOpen(false);
       form.reset();
-    } catch (error) {
-      toast.error("Lỗi khi gửi dữ liệu");
+    } catch (error: any) {
+      // Xử lý lỗi từ backend (ví dụ trùng lặp, logic server...)
+      const errorMsg =
+        error.response?.data?.message || "Lỗi khi gửi dữ liệu lên server";
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -220,8 +232,37 @@ function AddMoreVariantsDialog({
     }
   };
 
+  // Trigger onOpen khi nhấn vào trigger của Dialog
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (isOpen && onOpen) onOpen();
+  };
+
+  useEffect(() => {
+    if (open && existingProductAttributes.length > 0) {
+      // Map response API sang cấu trúc Form
+      const mappedAttributes = attributeTypes.map((type) => {
+        const selectedValues = existingProductAttributes
+          .filter((item) => String(item.attributeTypeId) === String(type.id))
+          .map((item) => ({
+            id: String(item.id),
+            name: item.value,
+          }));
+
+        return {
+          typeId: String(type.id),
+          typeName: type.name,
+          selectedValues: selectedValues,
+        };
+      });
+
+      // Cập nhật giá trị attributes cho form
+      form.setValue("attributes", mappedAttributes);
+    }
+  }, [open, existingProductAttributes, attributeTypes, form]);
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
           variant="ghost"
@@ -368,7 +409,6 @@ function AddMoreVariantsDialog({
                               <FormField
                                 control={form.control}
                                 name={`variants.${vIndex}.salePrice`}
-                                
                                 render={({ field }) => (
                                   <Input
                                     disabled
