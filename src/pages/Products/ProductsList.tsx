@@ -81,14 +81,25 @@ function ProductsList() {
   const [attributes, setAttributes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [, setError] = useState<string | null>(null);
+  // --- Quản lý State ---
+  const [selectedProductTypes, setSelectedProductTypes] = useState<Option[]>(
+    []
+  );
+  // const [selectedProviders, setSelectedProviders] = useState<Option[]>([]);
+  const [selectedAttributes, setSelectedAttributes] = useState<
+    Record<string, Option[]>
+  >({});
 
+  const [expandedRows, setExpandedRows] = useState<string[]>([]);
+
+  // State lưu trữ danh sách các Object sản phẩm con (variants) được chọn
+  const [selectedVariants, setSelectedVariants] = useState<any[]>([]);
   // Pagination & Filter States
   const [currentPage] = useState(1);
   const [pageSize] = useState(10);
   const [, setTotalPages] = useState(1);
   const [, setTotalItems] = useState(0);
-  const [search] = useState("");
-
+  const [search, setSearch] = useState("");
   const [selectedTypes] = useState<Option[]>([]);
   const [currentProductAttributes, setCurrentProductAttributes] = useState<
     any[]
@@ -102,15 +113,30 @@ function ProductsList() {
   const fetchProductsData = async () => {
     setLoading(true);
     try {
+      // 1. Chuyển đổi mảng product types thành chuỗi "id1,id2"
+      const typeIdsParam = selectedProductTypes.map((t) => t.id).join(",");
+
+      // 2. Chuyển đổi object attributes thành chuỗi "id1,id2,id3"
+      // Phẳng hóa tất cả các giá trị từ các loại thuộc tính khác nhau
+      const attributeIdsParam = Object.values(selectedAttributes)
+        .flat()
+        .map((attr) => attr.id)
+        .join(",");
+
       const res = await getProducts({
         page: currentPage,
         pageSize: pageSize,
         search: search || undefined,
         status: "active",
+        // Thêm 2 tham số mới vào đây (đảm bảo interface GetProductsParams trong api.ts đã nhận)
+        typeId: typeIdsParam || undefined,
+        attribute: attributeIdsParam || undefined,
       });
-      setProducts(res.data);
-      setTotalItems(res.meta.totalItems);
-      setTotalPages(res.meta.totalPages);
+      if (res && res.data) {
+        setProducts([...res.data]); // Spread để chắc chắn tạo reference mới cho array
+        setTotalItems(res.meta.totalItems);
+        setTotalPages(res.meta.totalPages);
+     }
     } catch (err: any) {
       setError(err?.message || "Lỗi tải sản phẩm");
     } finally {
@@ -130,7 +156,8 @@ function ProductsList() {
 
   useEffect(() => {
     fetchProductsData();
-  }, [currentPage, pageSize, search, selectedTypes]); // Lưu ý: dùng selectedProductTypes thay vì selectedTypes nếu state bên dưới dùng tên đó
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, pageSize, search, selectedProductTypes, selectedAttributes]); // Lưu ý: dùng selectedProductTypes thay vì selectedTypes nếu state bên dưới dùng tên đó
   const fetchStaticMetadata = async () => {
     try {
       const [typesRes, attrTypesRes] = await Promise.all([
@@ -176,20 +203,6 @@ function ProductsList() {
   //   () => MOCK_PROVIDERS.map((p) => ({ id: p.id, name: p.name })),
   //   []
   // );
-
-  // --- Quản lý State ---
-  const [selectedProductTypes, setSelectedProductTypes] = useState<Option[]>(
-    []
-  );
-  // const [selectedProviders, setSelectedProviders] = useState<Option[]>([]);
-  const [selectedAttributes, setSelectedAttributes] = useState<
-    Record<string, Option[]>
-  >({});
-
-  const [expandedRows, setExpandedRows] = useState<string[]>([]);
-
-  // State lưu trữ danh sách các Object sản phẩm con (variants) được chọn
-  const [selectedVariants, setSelectedVariants] = useState<any[]>([]);
 
   // --- Logic Xử lý ---
   const toggleRowExpand = (id: string) => {
@@ -421,7 +434,7 @@ function ProductsList() {
         </div>
       </div>
     );
-
+    console.log("Current Products in State:", products);
   return (
     <div className="w-full h-full p-5 flex flex-wrap gap-y-6 bg-background text-foreground">
       {/* Tiêu đề & Thanh công cụ */}
@@ -436,6 +449,8 @@ function ProductsList() {
             type="search"
             placeholder="Tìm theo mã, tên hàng hóa"
             className="focus-visible:ring-primary border-border"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <div className="basis-1/3 flex justify-around items-center">

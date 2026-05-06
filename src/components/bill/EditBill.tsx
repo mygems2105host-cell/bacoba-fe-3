@@ -55,7 +55,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Product } from "@/types";
-import { getProducts } from "@/services/api";
+import { getProducts, updateBill } from "@/services/api";
 
 // --- Helpers ---
 const formatDisplay = (val: number | string) => {
@@ -85,6 +85,7 @@ const formSchema = z.object({
       originalPrice: z.number().optional(),
       initialQuantity: z.number().optional(), // Đổi stock thành initialQuantity (tồn kho thực tế)
       originalQtyInBill: z.number(),
+      note: z.string().optional(),
     })
   ),
   totalDiscount: z.number().min(0),
@@ -213,72 +214,69 @@ export function EditBill({
   }, [watchedItems, watchedTotalDiscount]);
 
   // --- 4. XỬ LÝ THAY ĐỔI SỐ LƯỢNG (CHECK KHO) ---
-  const handleQuantityChange = (index: number, newVal: number) => {
+
+  const handlePriceChange = (index: number, val: string) => {
+    const numericVal = parseNumber(val);
+    // Cho phép giá bằng 0 nhưng không âm
+    setValue(`billItems.${index}.unitPrice`, Math.max(0, numericVal));
+  };
+
+  // Cập nhật hàm xử lý số lượng (kế thừa logic kho của bạn)
+  const handleQuantityChange = (index: number, val: string) => {
+    const newVal = parseNumber(val);
     const item = getValues(`billItems.${index}`);
 
-    // 1. Tính toán giới hạn tồn kho khả dụng
     const latestProduct = products.find((p) => p.id === item.productId);
     const realStock = latestProduct ? latestProduct.quantity : 0;
     const otherCommitted = committedQuantities[item.productId] || 0;
-
-    // Sử dụng field originalQtyInBill từ Schema mới (hoặc từ props bill cũ)
     const originalQtyInThisBill = Number(item.originalQtyInBill || 0);
+
     const totalAvailable = realStock + originalQtyInThisBill - otherCommitted;
 
-    // 2. Kiểm tra nếu nhập quá tồn kho
     if (newVal > totalAvailable) {
       toast.error(
-        `Sản phẩm ${item.productName} chỉ còn tối đa ${totalAvailable} sản phẩm`
+        `Sản phẩm ${item.productName} chỉ còn tối đa ${totalAvailable}`
       );
       setValue(`billItems.${index}.quantity`, totalAvailable);
-      return;
+    } else {
+      // Nếu xóa trắng thì để 0 để tránh lỗi UI, validation sẽ bắt nếu < 1 khi submit
+      setValue(`billItems.${index}.quantity`, newVal);
     }
-
-    // 3. Cập nhật giá trị vào form
-    // Chúng ta cho phép lưu số 0 hoặc NaN (khi xóa trống) vào state để người dùng dễ gõ tiếp
-    setValue(`billItems.${index}.quantity`, newVal);
   };
 
   // --- 5. SUBMIT VỚI CẢNH BÁO ---
   const validateAndSubmit = (data: FormValues) => {
-    // 1. Chốt chặn số lượng: Duyệt qua tất cả sản phẩm để kiểm tra số lượng >= 1
+    // 1. Kiểm tra giỏ hàng trống
+    if (data.billItems.length === 0) {
+      toast.error("Hóa đơn phải có ít nhất một sản phẩm.");
+      return;
+    }
+
+    // 2. Kiểm tra tính hợp lệ từng dòng (Số lượng & Tồn kho)
     for (const item of data.billItems) {
-      // Kiểm tra: Nếu là NaN, null, undefined hoặc nhỏ hơn 1
       const qty = Number(item.quantity);
-
-
       if (isNaN(qty) || qty < 1) {
-        toast.error(
-          `Sản phẩm "${item.productName}" yêu cầu số lượng tối thiểu là 1.`
-        );
+        toast.error(`Sản phẩm "${item.productName}" chưa có số lượng hợp lệ.`);
         return;
       }
-    }
 
-    // 2. Chốt chặn tồn kho (Logic cũ của bạn)
-    for (const item of data.billItems) {
       const latestP = products.find((p) => p.id === item.productId);
-      const realStock = latestP ? latestP.quantity : 0;
+      const available =
+        (latestP?.quantity || 0) +
+        (Number(item.originalQtyInBill) || 0) -
+        (committedQuantities[item.productId] || 0);
 
-      const originalBillItem = bill.billProducts?.find(
-        (p: any) => (p.productId || p.id) === item.productId
-      );
-      const originalQtyInThisBill = Number(originalBillItem?.quantity || 0);
-      const otherCommitted = committedQuantities[item.productId] || 0;
-
-      const available = realStock + originalQtyInThisBill - otherCommitted;
-
-      if (item.quantity > available) {
+      if (qty > available) {
         toast.error(
-          `Sản phẩm ${item.productName} không đủ tồn kho (Khả dụng tối đa: ${available})`
+          `${item.productName} vượt quá tồn kho khả dụng (${available})`
         );
         return;
       }
     }
 
-    // 3. Chốt chặn giá bán (Cảnh báo lợi nhuận)
+    // 3. Kiểm tra cảnh báo giá
     const hasLowPrice = data.billItems.some(
-      (item) => item.unitPrice < (item.originalPrice || 0)
+      (item) => (item.unitPrice || 0) < (item.originalPrice || 0)
     );
 
     if (hasLowPrice) {
@@ -291,15 +289,46 @@ export function EditBill({
   const handleFinalSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
-      // Giả lập API call
-      console.log("Saving Bill Data:", data);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // 1. Chuẩn hóa dữ liệu trước khi gửi (Loại bỏ các trường tạm, format lại số)
+      const billProductsData = data.billItems.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        salePrice: item.unitPrice,
+        total: item.quantity * item.unitPrice,
+      }));
 
-      toast.success("Cập nhật hóa đơn thành công");
-      setOpen(false);
-      onSuccess?.();
-    } catch (error) {
-      toast.error("Lỗi khi lưu dữ liệu");
+      const subTotal = data.billItems.reduce(
+        (sum, item) => sum + item.unitPrice * item.quantity,
+        0
+      );
+      const totalAmount = Math.max(0, subTotal - data.totalDiscount);
+
+      const updatePayload = {
+        name: bill?.name || `Hóa đơn ${bill?.id}`,
+        customerName: data.customerName,
+        phoneNumber: data.phoneNumber || "",
+        discount: data.totalDiscount,
+        total: totalAmount,
+        status: bill?.status,
+        createdAt: data.createdAt ? new Date(data.createdAt).toISOString() : undefined,
+        billProducts: billProductsData,
+      };
+
+      // Gọi API thực
+      const response = await updateBill(bill.id, updatePayload);
+
+      if (response.success) {
+        toast.success("Cập nhật hóa đơn thành công");
+        setOpen(false);
+        onSuccess?.();
+      } else {
+        toast.error(response.message || "Lỗi khi lưu dữ liệu");
+      }
+    } catch (error: any) {
+      const errorMsg =
+        error.response?.data?.message || error.message || "Lỗi khi lưu dữ liệu";
+      toast.error(errorMsg);
+      console.error("Error updating bill:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -451,49 +480,39 @@ export function EditBill({
                                   <div className="relative group">
                                     <Input
                                       value={formatDisplay(
-                                        item?.unitPrice || 0
+                                        item?.unitPrice ?? 0
                                       )}
                                       onChange={(e) =>
-                                        setValue(
-                                          `billItems.${index}.unitPrice`,
-                                          parseNumber(e.target.value)
-                                        )
+                                        handlePriceChange(index, e.target.value)
                                       }
                                       className={`text-right font-bold h-9 transition-all ${
                                         isLowPrice
-                                          ? "border-destructive bg-destructive/5 text-destructive focus-visible:ring-destructive"
-                                          : "border-border"
+                                          ? "border-destructive bg-destructive/5 text-destructive"
+                                          : ""
                                       }`}
                                     />
-                                    {isLowPrice && (
-                                      <div className="absolute -top-2 -right-1">
-                                        <span className="relative flex h-3 w-3">
-                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
-                                          <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
-                                        </span>
-                                      </div>
-                                    )}
                                   </div>
                                 </TableCell>
+
                                 <TableCell>
                                   <div className="flex flex-col items-center gap-1">
                                     <Input
-                                      value={formatDisplay(item?.quantity || 0)}
+                                      value={formatDisplay(item?.quantity ?? 0)}
                                       onChange={(e) =>
                                         handleQuantityChange(
                                           index,
-                                          parseNumber(e.target.value)
+                                          e.target.value
                                         )
                                       }
                                       className="text-center font-black h-9 border-border focus-visible:ring-primary"
                                     />
+                                    {form.formState.errors.billItems?.[index]
+                                      ?.quantity && (
+                                      <span className="text-[10px] text-destructive font-medium animate-pulse">
+                                        Tối thiểu 1 sản phẩm
+                                      </span>
+                                    )}
                                   </div>
-                                  {form.formState.errors.billItems?.[index]
-                                    ?.quantity && (
-                                    <span className="text-[10px] text-destructive font-medium">
-                                      Phải có ít nhất 1 sản phẩm
-                                    </span>
-                                  )}
                                 </TableCell>
                                 <TableCell className="text-right font-black text-foreground">
                                   {formatDisplay(

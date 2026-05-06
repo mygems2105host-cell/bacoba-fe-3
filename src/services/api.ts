@@ -59,8 +59,9 @@ export interface GetProductsParams {
   page?: number;
   pageSize?: number;
   search?: string;
-  brandId?: number;
-  typeId?: number;
+  brandId?: number | string;
+  typeId?: number | string;
+  attribute?: number | string;
   status?: string;
   order?: Record<string, "asc" | "desc">;
 }
@@ -619,6 +620,83 @@ export const createBill = async (data: CreateBillParams) => {
     return response.data;
   } catch (error) {
     console.error("Error creating bill:", error);
+    throw error;
+  }
+};
+
+export const returnBill = async (id: string) => {
+  try {
+    // 1. Sửa lại đường dẫn (URL) khớp với Postman: /bills/{id}/return
+    // 2. Nếu không có body, ta truyền một object rỗng {} hoặc null tùy vào cấu hình của apiClient
+    const response = await apiClient.post<CreateBillResponse>(`/bills/${id}/return`, {});
+    
+    return response.data;
+  } catch (error) {
+    // Cập nhật lại log lỗi cho đúng ngữ cảnh là "hoàn trả" hóa đơn
+    console.error(`Error returning bill with ID ${id}:`, error);
+    throw error;
+  }
+};
+
+// Thêm vào file api.ts
+
+export interface ExchangeBillParams {
+  discount: number;
+  total: number;
+  billProducts: {
+    productId: string;
+    productName: string;
+    quantity: number;
+    salePrice: number;
+    total: number;
+  }[];
+}
+
+/**
+ * Gọi API đổi hàng
+ * URL: POST /bills/{id}/exchange
+ */
+export const exchangeBill = async (id: string | number, params: ExchangeBillParams) => {
+  try {
+    const response = await apiClient.post<BillsApiResponse>(
+      `/bills/${id}/exchange`,
+      params
+    );
+    return response.data;
+  } catch (error) {
+    console.error(`Error exchanging bill with ID ${id}:`, error);
+    throw error;
+  }
+};
+
+// Thêm vào file api.ts
+
+export interface EditBillParams {
+  name: string;
+  customerName: string;
+  phoneNumber: string;
+  discount: number;
+  total: number;
+  createdAt?: string;
+  note?:string
+  status: string;
+  billProducts: CreateBillProductParam[];
+}
+
+
+/**
+ * Cập nhật thông tin hóa đơn
+ * URL: PUT /bills/{id}
+ */
+export const updateBill = async (billId: string | number, data: EditBillParams) => {
+  try {
+    const response = await apiClient.put<CreateBillResponse>(
+      `/bills/${billId}`,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error updating bill:", error);
     throw error;
   }
 };

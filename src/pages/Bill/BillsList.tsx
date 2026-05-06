@@ -29,10 +29,12 @@ import {
 } from "@/components/ui/table";
 import React, { useEffect, useState } from "react";
 import TagCombobox from "@/components/ui/TagCombobox";
-import { getBills, type BillsApiResponse } from "@/services/api";
+import { getBills, returnBill, type BillsApiResponse } from "@/services/api";
 import type { Bill } from "@/types";
 import { ExchangeBill } from "@/components/bill/ExchangeBill";
 import { EditBill } from "@/components/bill/EditBill";
+import { toast } from "sonner";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 function BillsList() {
   interface Option {
@@ -127,6 +129,19 @@ function BillsList() {
         return "text-orange-500 bg-orange-500/10 px-2 py-1 rounded-full text-xs font-semibold uppercase tracking-wider";
       default:
         return "text-muted-foreground bg-muted px-2 py-1 rounded-full text-xs font-semibold uppercase tracking-wider";
+    }
+  };
+
+  const handleReturnBill = async (id: string) => {
+    try {
+      setLoading(true);
+      await returnBill(id);
+      toast.success("Đã hoàn trả hóa đơn thành công");
+      fetchBills(); // Load lại danh sách sau khi trả hàng thành công
+    } catch (error) {
+      toast.error("Có lỗi xảy ra khi hoàn trả hóa đơn");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -448,31 +463,63 @@ function BillsList() {
                             </div>
 
                             {/* ACTION BUTTONS */}
-                            {(bill.status === "active" || bill.status === "completed") && (
+                            {(bill.status === "active" ||
+                              bill.status === "completed") && (
                               <div className="flex justify-end items-center gap-3 mt-2">
-                                <Button
+                                {/* <Button
                                   variant="outline"
                                   size="sm"
                                   className="flex items-center gap-2 hover:bg-muted font-medium border-secondary text-seconborder-secondary"
                                 >
                                   <FileText className="w-4 h-4" />
                                   Chỉnh sửa thông tin
-                                </Button>
-                                <EditBill bill={bill} onSuccess={fetchBills}/>
-                                
+                                </Button> */}
+                                <EditBill bill={bill} onSuccess={fetchBills} />
 
                                 <ExchangeBill
                                   originalBill={bill}
                                   onSuccess={fetchBills}
                                 />
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive hover:text-destructive-foreground transition-all font-medium"
-                                >
-                                  <Undo2 className="w-4 h-4" />
-                                  Trả toàn bộ hàng
-                                </Button>
+                            
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive hover:text-destructive-foreground transition-all font-medium"
+                                    >
+                                      <Undo2 className="w-4 h-4" />
+                                      Trả toàn bộ hàng
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>
+                                        Xác nhận trả hàng?
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Bạn có chắc chắn muốn hoàn trả toàn bộ
+                                        hàng cho hóa đơn{" "}
+                                        <span className="font-bold text-foreground">
+                                          {bill.id}
+                                        </span>
+                                        ? Thao tác này sẽ cập nhật trạng thái
+                                        hóa đơn và không thể hoàn tác.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() =>
+                                          handleReturnBill(bill.id)
+                                        }
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Xác nhận trả hàng
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </div>
                             )}
                           </div>

@@ -50,7 +50,11 @@ import {
   FileText,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getProducts } from "@/services/api";
+import {
+  exchangeBill,
+  getProducts,
+  type ExchangeBillParams,
+} from "@/services/api";
 import type { Product } from "@/types";
 
 // --- Helpers ---
@@ -336,18 +340,57 @@ export function ExchangeBill({
   const handleFinalSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
-      // API call logic ở đây
-      console.log("Final Payload:", data);
-      toast.success("Xử lý đổi trả thành công");
-      setOpen(false);
-      onSuccess?.();
-    } catch (e) {
-      toast.error("Lỗi khi lưu hóa đơn");
+      // 1. Lọc ra các sản phẩm khách GIỮ LẠI từ hóa đơn gốc
+      // Logic: Lấy toàn bộ sản phẩm gốc, trừ đi số lượng khách đã chọn trả
+      const keptProducts = data.returnItems.flatMap((item) => {
+        const remainingQty = item.maxQuantity - item.quantity;
+
+        if (remainingQty > 0) {
+          return [
+            {
+              productId: item.productId,
+              productName: item.productName,
+              quantity: remainingQty,
+              salePrice: item.salePrice,
+              total: remainingQty * item.salePrice,
+            },
+          ];
+        }
+        return []; // Trả về mảng rỗng tương đương với việc loại bỏ phần tử này
+      });
+
+      // 2. Sản phẩm mua mới
+      const newProducts = data.exchangeItems.map((item) => ({
+        productId: item.productId,
+        productName: item.productName,
+        quantity: item.quantity,
+        salePrice: item.salePrice,
+        total: item.quantity * item.salePrice,
+      }));
+
+      // 3. Lúc này fullBillProducts sẽ có kiểu chuẩn là mảng object, không có null
+      const payload: ExchangeBillParams = {
+        discount: data.totalDiscount || 0,
+        total: totals.totalNewBill,
+        billProducts: [...keptProducts, ...newProducts],
+      };
+
+      const response = await exchangeBill(originalBill.id, payload);
+
+      if (response.success) {
+        toast.success("Xử lý đổi trả hàng thành công!");
+        setOpen(false);
+        if (onSuccess) onSuccess();
+      }
+    } catch (error: any) {
+      console.error("Exchange API Error:", error);
+      toast.error(
+        error.response?.data?.message || "Lỗi khi lưu hóa đơn đổi trả"
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
-
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -566,13 +609,12 @@ export function ExchangeBill({
                               </TableHead>
                               <TableHead>Sản phẩm</TableHead>
                               <TableHead className="text-right w-36">
-                                Giá bán mới
+                                Đơn giá
                               </TableHead>
+                              <TableHead className="text-center w-28"></TableHead>
+
                               <TableHead className="text-center w-28">
-                                SL
-                              </TableHead>
-                              <TableHead className="text-right w-32">
-                                Giảm giá
+                                Số lượng
                               </TableHead>
                               <TableHead className="text-right">
                                 Thành tiền
@@ -639,6 +681,7 @@ export function ExchangeBill({
                                       )}
                                     </div>
                                   </TableCell>
+                                  <TableCell></TableCell>
                                   <TableCell>
                                     <Input
                                       className="text-center font-medium"
@@ -657,18 +700,7 @@ export function ExchangeBill({
                                       }}
                                     />
                                   </TableCell>
-                                  <TableCell>
-                                    <Input
-                                      className="text-right text-muted-foreground font-medium"
-                                      value={formatNumber(currentItem.discount)}
-                                      onChange={(e) =>
-                                        setValue(
-                                          `exchangeItems.${index}.discount`,
-                                          parseNumber(e.target.value)
-                                        )
-                                      }
-                                    />
-                                  </TableCell>
+
                                   <TableCell className="text-right font-medium text-primary">
                                     {formatNumber(
                                       currentItem.quantity *
@@ -794,47 +826,48 @@ export function ExchangeBill({
                       </div>
 
                       {/* KHỐI 3: KẾT QUẢ & TỔNG MỚI */}
-                      <div className="space-y-3 pt-2">
-                        <div className="flex justify-between items-center pb-2 border-b border-dashed">
-                          <span className="text-sm font-bold text-foreground">
-                            TỔNG HÓA ĐƠN MỚI:
+
+                      {totals.refundToCustomer > 0 && (
+                        <div className="flex justify-between items-center p-3 rounded-md bg-destructive/10 text-destructive border border-destructive/20">
+                          <span className="text-sm font-medium">
+                            Số tiền cần trả khách:
                           </span>
-                          <span className="font-bold text-foreground text-xl">
-                            {formatNumber(totals.totalNewBill)}đ
+                          <span className="font-semibold text-xl">
+                            {formatNumber(totals.refundToCustomer)}đ
                           </span>
                         </div>
+                      )}
 
-                        {totals.refundToCustomer > 0 && (
-                          <div className="flex justify-between items-center p-3 rounded-md bg-destructive/10 text-destructive border border-destructive/20">
+                      {totals.needToPay > 0 && (
+                        <div className="flex justify-between items-center p-3 rounded-md bg-primary/10 text-primary border border-primary/20">
+                          <span className="text-sm font-medium">
+                            Số tiền khách cần trả:
+                          </span>
+                          <span className="font-semibold text-xl">
+                            {formatNumber(totals.needToPay)}đ
+                          </span>
+                        </div>
+                      )}
+
+                      {totals.needToPay === 0 &&
+                        totals.refundToCustomer === 0 && (
+                          <div className="flex justify-between items-center p-3 rounded-md bg-muted text-muted-foreground border">
                             <span className="text-sm font-medium">
-                              Số tiền cần trả khách:
+                              Chênh lệch:
                             </span>
-                            <span className="font-semibold text-lg">
-                              {formatNumber(totals.refundToCustomer)}đ
-                            </span>
+                            <span className="font-semibold text-xl">0đ</span>
                           </div>
                         )}
+                    </div>
 
-                        {totals.needToPay > 0 && (
-                          <div className="flex justify-between items-center p-3 rounded-md bg-primary/10 text-primary border border-primary/20">
-                            <span className="text-sm font-medium">
-                              Số tiền khách cần trả:
-                            </span>
-                            <span className="font-semibold text-lg">
-                              {formatNumber(totals.needToPay)}đ
-                            </span>
-                          </div>
-                        )}
-
-                        {totals.needToPay === 0 &&
-                          totals.refundToCustomer === 0 && (
-                            <div className="flex justify-between items-center p-3 rounded-md bg-muted text-muted-foreground border">
-                              <span className="text-sm font-medium">
-                                Chênh lệch:
-                              </span>
-                              <span className="font-semibold text-lg">0đ</span>
-                            </div>
-                          )}
+                    <div className="space-y-3 pt-2">
+                      <div className="flex justify-between items-center pb-2 border-b border-dashed">
+                        <span className="text-sm font-bold text-foreground">
+                          TỔNG HÓA ĐƠN MỚI:
+                        </span>
+                        <span className="font-bold text-foreground text-md">
+                          {formatNumber(totals.totalNewBill)}đ
+                        </span>
                       </div>
 
                       <FormField

@@ -22,6 +22,7 @@ export interface Bill {
   createdAt: Date;
   updatedAt: Date;
   billProducts?: BillProduct[];
+  [key:string]:any;
 }
 
 export type CreateBillInput = Omit<Bill, "id" | "createdAt" | "updatedAt" | "exchange" | "exchangedBy" | "billProducts">;
