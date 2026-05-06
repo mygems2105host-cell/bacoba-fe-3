@@ -41,6 +41,63 @@ import AddNewHistory from "@/components/provider/AddNewHistory";
 import EditProviderDialog from "@/components/provider/EditProviderDialog";
 import EditHistoryProvider from "@/components/provider/EditHistoryProvider";
 import { getHistoryProviders, getProviders } from "@/services/api";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const ProvidersSkeleton = () => {
+  return (
+    <>
+      {/* Skeleton cho hàng Tổng cộng */}
+      <TableRow className="bg-muted/50">
+        <TableCell colSpan={6} className="text-right py-4">
+          <Skeleton className="h-4 w-20 ml-auto" />
+        </TableCell>
+        <TableCell className="text-right">
+          <Skeleton className="h-4 w-24 ml-auto" />
+        </TableCell>
+        <TableCell className="text-right">
+          <Skeleton className="h-4 w-24 ml-auto" />
+        </TableCell>
+        <TableCell colSpan={2} />
+      </TableRow>
+
+      {/* Skeleton cho 10 hàng dữ liệu */}
+      {Array.from({ length: 10 }).map((_, i) => (
+        <TableRow key={i} className="border-border">
+          <TableCell>
+            <Skeleton className="h-4 w-4" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-4" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-24" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-40" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-32" />
+          </TableCell>
+          <TableCell className="text-right">
+            <Skeleton className="h-4 w-24 ml-auto" />
+          </TableCell>
+          <TableCell className="text-right">
+            <Skeleton className="h-4 w-24 ml-auto" />
+          </TableCell>
+          <TableCell className="text-right">
+            <Skeleton className="h-4 w-24 ml-auto" />
+          </TableCell>
+          <TableCell className="text-center">
+            <Skeleton className="h-6 w-20 mx-auto rounded-full" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-8 w-8 rounded-md" />
+          </TableCell>
+        </TableRow>
+      ))}
+    </>
+  );
+};
 
 function ProvidersList() {
   interface Option {
@@ -65,21 +122,26 @@ function ProvidersList() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Gọi song song cả Provider và History
+      const statusQuery = selectedStatus.map((s) => s.id).join(",");
+
       const [provRes, histRes] = await Promise.all([
         getProviders({
           search: searchQuery,
-          page: meta.currentPage,
+          status: statusQuery,
+          page: meta.currentPage, // Sử dụng page hiện tại từ state meta
+          pageSize: 10,
         } as any),
         getHistoryProviders(),
       ]);
 
       if (provRes.success) {
         setProviders(provRes.data);
-        setMeta({
+        // CẬP NHẬT: Chỉ cập nhật totalPages, không nên set lại currentPage từ API
+        // nếu API trả về không khớp với request để tránh loop.
+        setMeta((prev) => ({
+          ...prev,
           totalPages: provRes.meta.totalPages,
-          currentPage: provRes.meta.page,
-        });
+        }));
       }
       if (histRes.success) setHistories(histRes.data);
     } catch (error) {
@@ -87,27 +149,28 @@ function ProvidersList() {
     } finally {
       setTimeout(() => {
         setLoading(false);
-      }, 200);
+      }, 100);
     }
   };
 
   useEffect(() => {
     fetchData();
-  }, [searchQuery, meta.currentPage]);
+  }, [searchQuery, meta.currentPage, selectedStatus]);
 
   // Logic lọc Nhà cung cấp tại Client dựa trên trạng thái
-  const filteredProviders = useMemo(() => {
-    return providers.filter((prov) => {
-      const matchesStatus =
-        selectedStatus.length === 0 ||
-        selectedStatus.some((s) => s.id === prov.status);
-      return matchesStatus;
-    });
-  }, [providers, selectedStatus]);
+  // const filteredProviders = useMemo(() => {
+  //   return providers.filter((prov) => {
+  //     const matchesStatus =
+  //       selectedStatus.length === 0 ||
+  //       selectedStatus.some((s) => s.id === prov.status);
+  //     return matchesStatus;
+  //   });
+  // }, [providers, selectedStatus]);
 
   // --- TÍNH TOÁN TỔNG CỘNG CHO TABLE CHA ---
-  const grandTotalBuy = filteredProviders.reduce((sum, p) => sum + p.total, 0);
-  const grandTotalDebt = filteredProviders.reduce(
+  const displayProviders = providers;
+  const grandTotalBuy = displayProviders.reduce((sum, p) => sum + p.total, 0);
+  const grandTotalDebt = displayProviders.reduce(
     (sum, p) => sum + p.debtTotal,
     0
   );
@@ -174,7 +237,10 @@ function ProvidersList() {
             <TagCombobox
               options={statusOptions}
               selected={selectedStatus}
-              onChange={(val) => setSelectedStatus(val)}
+              onChange={(val) => {
+                setSelectedStatus(val);
+                setMeta((prev) => ({ ...prev, currentPage: 1 })); // Thêm dòng này
+              }}
               placeholder="Chọn trạng thái..."
             />
           </div>
@@ -191,14 +257,12 @@ function ProvidersList() {
                   <Checkbox
                     className="border-input data-[state=checked]:bg-primary"
                     checked={
-                      filteredProviders.length > 0 &&
-                      filteredProviders.every((p) =>
-                        selectedRows.includes(p.id)
-                      )
+                      providers.length > 0 &&
+                      providers.every((p) => selectedRows.includes(p.id))
                     }
                     onCheckedChange={(checked) => {
                       if (checked) {
-                        setSelectedRows(filteredProviders.map((p) => p.id));
+                        setSelectedRows(providers.map((p) => p.id));
                       } else {
                         setSelectedRows([]);
                       }
@@ -217,7 +281,7 @@ function ProvidersList() {
                 <TableHead className="text-right font-bold text-foreground">
                   Điện thoại
                 </TableHead>
-                
+
                 <TableHead className="text-right font-bold text-foreground">
                   Tổng mua
                 </TableHead>
@@ -234,18 +298,19 @@ function ProvidersList() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProviders.length > 0 ? (
+              {loading ? (
+                <ProvidersSkeleton />
+              ) : providers.length > 0 ? (
                 <>
                   {/* HÀNG TỔNG CỘNG */}
                   <TableRow className="bg-muted/50 hover:bg-muted/50 border-t-2 border-border font-bold">
-                    
                     <TableCell
                       colSpan={6}
                       className="text-right text-foreground py-4"
                     >
                       Tổng cộng:
                     </TableCell>
-                    
+
                     <TableCell className="text-right text-foreground">
                       {grandTotalBuy.toLocaleString()}
                     </TableCell>
@@ -258,7 +323,7 @@ function ProvidersList() {
                     <TableCell colSpan={2} />
                   </TableRow>
 
-                  {filteredProviders.map((prov) => {
+                  {providers.map((prov) => {
                     const isExpanded = expandedRows.includes(prov.id);
                     const isSelected = selectedRows.includes(prov.id);
 
@@ -304,19 +369,17 @@ function ProvidersList() {
                               onCheckedChange={() => handleSelectRow(prov.id)}
                             />
                           </TableCell>
-                          <TableCell className="text-sm">
-                            NCC-{prov.id}
-                          </TableCell>
+                          <TableCell className="text-sm">{prov.id}</TableCell>
                           <TableCell className="text-sm font-bold text-primary">
                             {prov.name}
                           </TableCell>
                           <TableCell className="text-left text-sm">
-                            {prov.email|| "---"}
+                            {prov.email || "---"}
                           </TableCell>
                           <TableCell className="text-right text-sm">
                             {prov.phoneNumber || "---"}
                           </TableCell>
-                          
+
                           <TableCell className="text-right">
                             {prov.total.toLocaleString()}
                           </TableCell>
@@ -378,7 +441,9 @@ function ProvidersList() {
                                               <TableRow
                                                 key={hist.id}
                                                 className={`border-border hover:bg-accent/20 ${
-                                                  isCancelled ? "opacity-60 bg-muted/20 line-through" : "" // Làm mờ nhẹ hàng bị hủy
+                                                  isCancelled
+                                                    ? "opacity-60 bg-muted/20 line-through"
+                                                    : "" // Làm mờ nhẹ hàng bị hủy
                                                 }`}
                                               >
                                                 <TableCell className="font-medium text-chart-2">
@@ -396,7 +461,8 @@ function ProvidersList() {
                                                 <TableCell className="text-center">
                                                   <span
                                                     className={
-                                                      hist.status === "completed"
+                                                      hist.status ===
+                                                      "completed"
                                                         ? "text-chart-4 bg-chart-4/10 px-2 py-0.5 rounded text-xs"
                                                         : "text-background bg-destructive/80 px-2 py-0.5 rounded text-xs"
                                                     }

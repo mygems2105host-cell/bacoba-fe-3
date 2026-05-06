@@ -215,16 +215,18 @@ export function AddNewReceivedNote({
         providerId: data.providerId, // Chuyển từ string sang number nếu backend yêu cầu
         phoneNumber: "", // Bạn có thể lấy từ object provider nếu có dữ liệu NCC
         description: data.description || "",
-        discount: data.totalDiscount,
-        payedMoney: data.paidAmount,
-        debtMoney: totals.debt,
-        total: totals.totalAmount,
-        status: "confirm", // Trạng thái mặc định khi nhấn Xác nhận
+        discount: data.totalDiscount, 
+        payedMoney: data.paidAmount, 
+        debtMoney: totals.debt,      // Giá trị này đã được tính: (Total - Discount) - Paid
+        total: totals.totalAmount,   // Giá trị này đã được tính: Subtotal - Discount
+        
+        status: "confirm",
         receivedProducts: data.receivedProducts.map((p) => ({
           productId: p.id,
           addQuantity: p.addQuantity,
           discount: p.discount,
           description: p.name,
+          // Đảm bảo tính toán đúng cho từng dòng sản phẩm
           total: (p.price - p.discount) * p.addQuantity,
         })),
       };
