@@ -20,7 +20,7 @@ import {
   CardContent, 
   CardHeader, 
   CardTitle,
-  CardDescription
+  // CardDescription
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 

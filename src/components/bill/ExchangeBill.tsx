@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import  { useMemo, useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+// import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
@@ -113,7 +113,7 @@ export function ExchangeBill({
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showPriceWarning, setShowPriceWarning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [oldDiscount, setOldDiscount] = useState(0);
+  const [, setOldDiscount] = useState(0);
 
   // Thêm useEffect này để lấy discount gốc từ bill cũ khi mở popup
   useEffect(() => {
@@ -178,7 +178,7 @@ export function ExchangeBill({
   const watchedReturns = useWatch({ control, name: "returnItems" });
   const watchedExchanges = useWatch({ control, name: "exchangeItems" });
   const watchedDiscount = useWatch({ control, name: "totalDiscount" });
-  const watchedPaid = useWatch({ control, name: "paidAmount" });
+  // const watchedPaid = useWatch({ control, name: "paidAmount" });
 
   // Kiểm tra xem có thao tác thay đổi nào không (để disable nút)
   const hasChanges = useMemo(() => {

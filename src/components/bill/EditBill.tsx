@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useState } from "react";
+import  { useMemo, useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -41,15 +41,15 @@ import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
-  Trash2,
+  // Trash2,
   Save,
   FileEdit,
   ReceiptText,
   User,
-  Phone,
+  // Phone,
   Notebook,
   AlertTriangle,
-  Info,
+  // Info,
   Loader2,
   PackageSearch,
 } from "lucide-react";
@@ -170,7 +170,7 @@ export function EditBill({
   });
 
   const { control, handleSubmit, setValue, reset, getValues } = form;
-  const { fields, remove } = useFieldArray({ control, name: "billItems" });
+  const { fields,  } = useFieldArray({ control, name: "billItems" });
   const watchedItems = useWatch({ control, name: "billItems" });
   const watchedTotalDiscount = useWatch({ control, name: "totalDiscount" });
 

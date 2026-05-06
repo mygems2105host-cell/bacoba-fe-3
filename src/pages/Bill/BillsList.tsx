@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
+  // PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -15,9 +15,9 @@ import {
   ChevronDown,
   ChevronRight,
   Undo2,
-  FileText,
+  // FileText,
   ArrowRightLeft,
-  RotateCcw,
+  // RotateCcw,
 } from "lucide-react";
 import {
   Table,
@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/table";
 import React, { useEffect, useState } from "react";
 import TagCombobox from "@/components/ui/TagCombobox";
-import { getBills, returnBill, type BillsApiResponse } from "@/services/api";
+import { getBills, returnBill } from "@/services/api";
 import type { Bill } from "@/types";
 import { ExchangeBill } from "@/components/bill/ExchangeBill";
 import { EditBill } from "@/components/bill/EditBill";

@@ -25,7 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 // Import mock data và types
 import { type Provider } from "@/types/Provider";
 import { type HistoryProvider } from "@/types/HistoryProvider";

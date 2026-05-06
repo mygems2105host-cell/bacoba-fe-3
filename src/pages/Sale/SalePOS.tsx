@@ -41,8 +41,8 @@ const MAX_BILLS = 30;
 const STORAGE_KEY = "temp_sales_pos_bills";
 
 export default function SalePOS() {
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [, setIsLoadingProducts] = useState(false);
+  
+  
   const [bills, setBills] = useState<Bill[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeBillId, setActiveBillId] = useState<string | null>(null);

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
+  // PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -16,13 +16,13 @@ import {
   // ArrowRight,
   ChevronDown,
   ChevronRight,
-  Edit,
+  // Edit,
   // Edit,
   MoreHorizontal,
-  Plus,
+  // Plus,
   // Plus,
   RefreshCcw,
-  Trash2,
+  // Trash2,
   // Trash2,
 } from "lucide-react";
 import {
@@ -40,7 +40,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
+  // DropdownMenuSeparator,
   // DropdownMenuLabel,
   // DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -122,7 +122,7 @@ function ProductsList() {
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
   const [, setTotalItems] = useState(0);
-  const [selectedTypes] = useState<Option[]>([]);
+  // const [selectedTypes] = useState<Option[]>([]);
   const [currentProductAttributes, setCurrentProductAttributes] = useState<
     any[]
   >([]);
@@ -352,22 +352,22 @@ function ProductsList() {
   };
 
   // --- Sửa logic Chọn Tất Cả (Tránh mất dữ liệu cũ) ---
-  const handleSelectAllOnPage = (checked: boolean) => {
-    if (checked) {
-      const allVariantsOnPage = products.flatMap((p) => p.variants);
-      setSelectedVariants((prev) => {
-        // Kết hợp dữ liệu cũ và mới, lọc trùng ID
-        const combined = [...prev, ...allVariantsOnPage];
-        return Array.from(new Map(combined.map((v) => [v.id, v])).values());
-      });
-    } else {
-      // Chỉ bỏ chọn những thằng đang hiện diện trên trang này
-      const idsOnPage = products.flatMap((p) => p.variants).map((v) => v.id);
-      setSelectedVariants((prev) =>
-        prev.filter((sv) => !idsOnPage.includes(sv.id))
-      );
-    }
-  };
+  // const handleSelectAllOnPage = (checked: boolean) => {
+  //   if (checked) {
+  //     const allVariantsOnPage = products.flatMap((p) => p.variants);
+  //     setSelectedVariants((prev) => {
+  //       // Kết hợp dữ liệu cũ và mới, lọc trùng ID
+  //       const combined = [...prev, ...allVariantsOnPage];
+  //       return Array.from(new Map(combined.map((v) => [v.id, v])).values());
+  //     });
+  //   } else {
+  //     // Chỉ bỏ chọn những thằng đang hiện diện trên trang này
+  //     const idsOnPage = products.flatMap((p) => p.variants).map((v) => v.id);
+  //     setSelectedVariants((prev) =>
+  //       prev.filter((sv) => !idsOnPage.includes(sv.id))
+  //     );
+  //   }
+  // };
 
   const TableSkeleton = () => (
       
