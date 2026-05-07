@@ -41,8 +41,6 @@ const MAX_BILLS = 30;
 const STORAGE_KEY = "temp_sales_pos_bills";
 
 export default function SalePOS() {
-  
-  
   const [bills, setBills] = useState<Bill[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeBillId, setActiveBillId] = useState<string | null>(null);
@@ -217,37 +215,39 @@ export default function SalePOS() {
 
   const addProductToBill = (product: Product) => {
     if (!activeBillId) return;
-  
+
     // 1. Lấy số lượng sản phẩm này đang bị chiếm dụng bởi các hóa đơn CHỜ KHÁC
     const otherBillsQty = committedQuantities[product.id] || 0;
-    
+
     // 2. Tính tồn kho thực tế có thể bán (Tổng kho - Đã nằm trong đơn khác)
     const maxAvailable = product.quantity - otherBillsQty;
-  
+
     if (maxAvailable <= 0) {
-      toast.error(`Sản phẩm ${product.name} đã hết hàng (đang nằm trong các đơn chờ khác)`);
+      toast.error(
+        `Sản phẩm ${product.name} đã hết hàng (đang nằm trong các đơn chờ khác)`
+      );
       return;
     }
-  
+
     setBills((prev) =>
       prev.map((bill) => {
         if (bill.id !== activeBillId) return bill;
-  
+
         const products = bill.billProducts || [];
         const existingIdx = products.findIndex((p: any) => p.id === product.id);
-        
+
         let newProducts: any[];
-  
+
         if (existingIdx > -1) {
           // --- TRƯỜNG HỢP: Sản phẩm đã có trong giỏ hàng hiện tại ---
           const currentQtyInActiveBill = products[existingIdx].quantity || 0;
-  
+
           // Kiểm tra xem có thể tăng thêm nữa không
           if (currentQtyInActiveBill >= maxAvailable) {
             toast.warning(`Đã đạt giới hạn tồn kho cho phép (${maxAvailable})`);
             return bill; // Trả về bill cũ, không update state để tránh re-render thừa
           }
-  
+
           newProducts = [...products];
           newProducts[existingIdx] = {
             ...newProducts[existingIdx],
@@ -266,7 +266,7 @@ export default function SalePOS() {
             },
           ];
         }
-  
+
         // 3. Trả về hóa đơn mới với danh sách sản phẩm và tổng tiền đã cập nhật
         return {
           ...bill,
@@ -279,12 +279,12 @@ export default function SalePOS() {
         };
       })
     );
-  
+
     // --- CẬP NHẬT UI/UX ---
     // Xóa nội dung tìm kiếm để đóng dropdown ngay lập tức
     setSearchTerm("");
     setSearchResults([]);
-  
+
     // Giữ focus vào ô input để nhân viên có thể quét barcode hoặc gõ tiếp mà không cần click chuột
     if (searchInputRef.current) {
       searchInputRef.current.focus();
@@ -497,7 +497,6 @@ export default function SalePOS() {
     return () => window.removeEventListener("keydown", handleF2);
   }, []);
 
-
   return (
     <div className="flex h-[calc(100vh-100px)] w-full bg-background text-foreground border-t border-border overflow-hidden">
       {/* SIDEBAR LEFT */}
@@ -572,6 +571,10 @@ export default function SalePOS() {
             variant="ghost"
             size="icon"
             className="ml-4 h-10 w-10 hover:text-primary"
+            onClick={() => {
+              searchInputRef.current?.focus();
+              toast.info("Chế độ quét barcode đã sẵn sàng");
+            }}
           >
             <ScanBarcode size={18} />
           </Button>

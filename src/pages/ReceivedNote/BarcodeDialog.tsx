@@ -192,7 +192,7 @@ export function BarcodeDialog({ note }: BarcodeDialogProps) {
               position: absolute;
               left: 0;
               top: 0;
-              width: ${paperSize === "2t" ? "74mm" : "37mm"} !important;
+              width: ${paperSize === "2t" ? "76mm" : "38mm"} !important;
               display: grid !important;
               grid-template-columns: ${
                 paperSize === "2t" ? "1fr 1fr" : "1fr"

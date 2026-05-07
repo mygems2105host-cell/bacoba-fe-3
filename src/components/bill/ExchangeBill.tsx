@@ -1,4 +1,4 @@
-import  { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -107,7 +107,7 @@ export function ExchangeBill({
   onSuccess?: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  // const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -208,66 +208,107 @@ export function ExchangeBill({
   }, [originalBill, open, form]);
 
   // --- 3. FETCH DỮ LIỆU & TÌM KIẾM ---
-  useEffect(() => {
-    if (open) {
-      const fetchProducts = async () => {
-        const res = await getProducts({ pageSize: 100000 });
-        if (res.success) {
-          const variants = res.data.flatMap((p) => p.variants || []);
-          setAllProducts(variants);
-        }
-      };
-      fetchProducts();
-    }
-  }, [open]);
+  // --- Tìm và thay thế đoạn khai báo state và useEffect fetchProducts cũ ---
 
+  const [isLoadingSearch, setIsLoadingSearch] = useState(false);
+
+  // Thay thế useEffect fetch toàn bộ sản phẩm bằng logic search BE
   useEffect(() => {
-    const term = searchTerm.toLowerCase().trim();
-    if (!term) {
-      setSearchResults([]);
-      return;
-    }
-    const results = allProducts.filter(
-      (p) =>
-        p.name.toLowerCase().includes(term) ||
-        p.id.toLowerCase().includes(term) ||
-        p.barcode?.toLowerCase().includes(term)
-    );
-    setSearchResults(results);
-  }, [searchTerm, allProducts]);
+    const delayDebounceFn = setTimeout(async () => {
+      const term = searchTerm.toLowerCase().trim();
+
+      if (!term) {
+        setSearchResults([]);
+        return;
+      }
+
+      setIsLoadingSearch(true);
+      try {
+        // Gọi API getProducts với param search từ file api.ts đã ghi nhớ
+        const res = await getProducts({
+          search: term,
+          pageSize: 20, // Chỉ lấy top 20 kết quả phù hợp nhất
+        });
+
+        if (res.success) {
+          // Flatten variants nếu cần thiết (tùy cấu trúc data BE trả về)
+          const variants = res.data.flatMap((p) => p.variants || []);
+          setSearchResults(variants);
+        }
+      } catch (error) {
+        console.error("Search API error:", error);
+        toast.error("Lỗi khi tìm kiếm sản phẩm");
+      } finally {
+        setIsLoadingSearch(false);
+      }
+    }, 500); // Đợi 500ms sau khi người dùng ngừng gõ mới gọi API
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
+
+  // useEffect(() => {
+  //   const term = searchTerm.toLowerCase().trim();
+  //   if (!term) {
+  //     setSearchResults([]);
+  //     return;
+  //   }
+  //   const results = allProducts.filter(
+  //     (p) =>
+  //       p.name.toLowerCase().includes(term) ||
+  //       p.id.toLowerCase().includes(term) ||
+  //       p.barcode?.toLowerCase().includes(term)
+  //   );
+  //   setSearchResults(results);
+  // }, [searchTerm, allProducts]);
 
   const addProductToExchange = (product: Product) => {
+    // 1. Kiểm tra tồn kho khả dụng (tính cả kho ảo POS)
     const otherQty = committedQuantities[product.id] || 0;
     const available = product.quantity - otherQty;
 
     if (available <= 0) {
-      toast.error("Sản phẩm đã hết hàng (đang nằm trong các đơn chờ ở POS)");
+      toast.error("Sản phẩm đã hết hàng (bao gồm các đơn chờ ở POS)");
       return;
     }
 
+    // 2. Tìm xem sản phẩm đã có trong danh sách đổi mới chưa
     const existingIdx = watchedExchanges.findIndex(
       (item) => item.productId === product.id
     );
+
     if (existingIdx > -1) {
-      const newQty = watchedExchanges[existingIdx].quantity + 1;
+      const currentItem = watchedExchanges[existingIdx];
+      const newQty = currentItem.quantity + 1;
+
+      // Kiểm tra nếu vượt quá số lượng khả dụng
       if (newQty > available) {
         toast.warning(`Chỉ còn ${available} sản phẩm khả dụng`);
         return;
       }
+
+      // Cập nhật đồng thời cả quantity và total để tránh sai lệch dữ liệu form
       setValue(`exchangeItems.${existingIdx}.quantity`, newQty);
+      setValue(
+        `exchangeItems.${existingIdx}.total`,
+        newQty * (currentItem.salePrice - (currentItem.discount || 0))
+      );
     } else {
+      // 3. Nếu là sản phẩm mới, thêm vào mảng
       append({
         productId: product.id,
         productName: product.name,
         quantity: 1,
         salePrice: product.salePrice,
-        originalPrice: product.salePrice,
+        originalPrice: product.salePrice, // Giữ giá gốc để cảnh báo nếu sau này sửa giá
         discount: 0,
         total: product.salePrice,
-        stock: product.quantity,
+        stock: product.quantity, // Tồn kho thực tế từ BE
       });
     }
+
+    // 4. Clear search và đóng dropdown
     setSearchTerm("");
+    setSearchResults([]); // Quan trọng: Reset kết quả tìm kiếm BE
     setIsSearchFocused(false);
   };
 
@@ -391,6 +432,16 @@ export function ExchangeBill({
       setIsSubmitting(false);
     }
   };
+
+  const handleScanClick = () => {
+    // Focus vào ô input để người dùng hoặc máy quét có thể nhập liệu ngay
+    const searchInput = document.getElementById("product-search-input");
+    if (searchInput) {
+      searchInput.focus();
+      // Giả lập: Nếu bạn muốn hiển thị một thông báo hoặc hiệu ứng quét
+      toast.info("Sẵn sàng quét mã...");
+    }
+  };
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -425,56 +476,93 @@ export function ExchangeBill({
                 </div>
               </div>
             </div>
+            {/* --- Phần UI Search trong DialogHeader --- */}
+
             <div className="flex items-center gap-2 mr-8">
               <div className="relative w-96">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
+                  id="product-search-input" // Thêm ID để focus
                   placeholder="Quét barcode hoặc tìm sản phẩm đổi mới..."
                   className="pl-9 h-10 bg-muted"
                   value={searchTerm}
                   onFocus={() => setIsSearchFocused(true)}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  // Nếu người dùng nhấn Enter, ta có thể chủ động gọi search ngay lập tức thay vì chờ debounce
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      // Logic search tức thì nếu cần
+                    }
+                  }}
                 />
 
-                {isSearchFocused && searchResults.length > 0 && (
-                  <div className="absolute top-11 left-0 right-0 bg-background border rounded-md shadow-md z-[100] max-h-96 overflow-y-auto">
-                    {searchResults.map((p) => {
-                      const otherQty = committedQuantities[p.id] || 0;
-                      const available = p.quantity - otherQty;
-                      return (
-                        <div
-                          key={p.id}
-                          className={`p-3 border-b flex justify-between items-center cursor-pointer hover:bg-muted ${
-                            available <= 0 ? "opacity-50" : ""
-                          }`}
-                          onClick={() => addProductToExchange(p)}
-                        >
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium">
-                              {p.name}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              Kho: {p.quantity} | POS chờ: {otherQty} |{" "}
-                              <span className="text-primary font-medium">
-                                Khả dụng: {available}
-                              </span>
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm font-medium text-primary">
-                              {formatNumber(p.salePrice)}đ
-                            </div>
-                            <div className="text-xs text-muted-foreground font-mono">
-                              {p.id}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                {/* Loader khi API đang fetch */}
+                {isLoadingSearch && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                   </div>
                 )}
+
+                {/* Dropdown hiển thị kết quả từ BE */}
+                {isSearchFocused &&
+                  (searchResults.length > 0 ||
+                    (searchTerm && !isLoadingSearch)) && (
+                    <div className="absolute top-11 left-0 right-0 bg-background border rounded-md shadow-md z-[100] max-h-96 overflow-y-auto">
+                      {searchResults.length > 0 ? (
+                        searchResults.map((p) => {
+                          const otherQty = committedQuantities[p.id] || 0;
+                          const available = p.quantity - otherQty;
+                          return (
+                            <div
+                              key={p.id}
+                              className={`p-3 border-b flex justify-between items-center cursor-pointer hover:bg-muted ${
+                                available <= 0
+                                  ? "opacity-50 pointer-events-none"
+                                  : ""
+                              }`}
+                              onClick={() => {
+                                addProductToExchange(p);
+                                setSearchTerm("");
+                                setSearchResults([]);
+                              }}
+                            >
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium">
+                                  {p.name}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  Kho: {p.quantity} | POS chờ: {otherQty} |{" "}
+                                  <span className="text-primary font-medium">
+                                    Khả dụng: {available}
+                                  </span>
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm font-medium text-primary">
+                                  {formatNumber(p.salePrice)}đ
+                                </div>
+                                <div className="text-xs text-muted-foreground font-mono">
+                                  {p.id}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                          Không tìm thấy sản phẩm "{searchTerm}"
+                        </div>
+                      )}
+                    </div>
+                  )}
               </div>
-              <Button size="icon" variant="outline">
+
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={handleScanClick} // Kích hoạt focus hoặc hành động quét
+                title="Quét mã (Focus vào ô tìm kiếm)"
+              >
                 <ScanBarcode className="w-4 h-4" />
               </Button>
             </div>
