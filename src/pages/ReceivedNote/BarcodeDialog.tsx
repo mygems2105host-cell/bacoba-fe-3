@@ -1,4 +1,4 @@
-import  { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -32,7 +32,7 @@ export function BarcodeDialog({ note }: BarcodeDialogProps) {
   // 1. Logic tạo danh sách tem dựa trên số lượng thực tế
   const allLabels = useMemo(() => {
     return (
-      note.receivedProducts?.flatMap((product:any) => {
+      note.receivedProducts?.flatMap((product: any) => {
         return Array.from({ length: product.addQuantity }).map((_, index) => ({
           ...product,
           uniqueKey: `${product.id}-${index}`,
@@ -79,28 +79,30 @@ export function BarcodeDialog({ note }: BarcodeDialogProps) {
                 minHeight: "150mm",
               }}
             >
-              {allLabels.map((item:any) => (
+              {allLabels.map((item: any) => (
                 <div
                   key={item.uniqueKey}
                   className="flex flex-col items-center p-2 border shadow border-muted-foreground/30 bg-background"
                   style={{ pageBreakInside: "avoid" }}
                 >
-                  <p className="text-[6px] font-bold uppercase w-full text-center text-foreground line-clamp-2 break-words">
+                  <p className="text-[10px] font-normal uppercase w-full text-center text-foreground line-clamp-2 break-words">
                     {item.productName}
                   </p>
                   <div className="my-1">
                     <Barcode
                       value={item.productId}
-                      width={1.0}
+                      width={1.1} // Tăng nhẹ độ rộng của nét vạch (mặc định là 2, bạn đang để 1.0 là hơi mỏng)
                       height={40}
                       displayValue={false}
                       margin={0}
+                      renderer="canvas" // Chuyển sang canvas để kiểm soát pixel tốt hơn
+                      background="#ffffff" // Đảm bảo nền trắng tuyệt đối
                     />
                   </div>
-                  <p className="text-[4px]  tracking-tighter uppercase">
+                  <p className="text-[8px]  tracking-tighter uppercase">
                     {item.productId}
                   </p>
-                  <p className="text-[12px] font-bold mt-1">
+                  <p className="text-[12px] font-normal mt-1">
                     {(item.total / item.addQuantity).toLocaleString()} VND
                   </p>
                 </div>
@@ -179,6 +181,12 @@ export function BarcodeDialog({ note }: BarcodeDialogProps) {
             body * { visibility: hidden; }
             #barcode-print-area, #barcode-print-area * { 
               visibility: visible; 
+            }
+            #barcode-print-area canvas, 
+            #barcode-print-area svg {
+              
+              image-rendering: pixelated;
+              image-rendering: crisp-edges;
             }
             #barcode-print-area {
               position: absolute;
