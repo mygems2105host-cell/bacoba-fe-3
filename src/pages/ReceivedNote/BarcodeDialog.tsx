@@ -92,10 +92,10 @@ export function BarcodeDialog({ note }: BarcodeDialogProps) {
                     <Barcode
                       value={item.productId}
                       width={1.1} // Tăng nhẹ độ rộng của nét vạch (mặc định là 2, bạn đang để 1.0 là hơi mỏng)
-                      height={40}
+                      height={30}
                       displayValue={false}
                       margin={0}
-                      renderer="canvas" // Chuyển sang canvas để kiểm soát pixel tốt hơn
+                      renderer="svg" // Chuyển sang canvas để kiểm soát pixel tốt hơn
                       background="#ffffff" // Đảm bảo nền trắng tuyệt đối
                     />
                   </div>
@@ -171,7 +171,7 @@ export function BarcodeDialog({ note }: BarcodeDialogProps) {
           @media print {
             @page { 
               margin: 0; 
-              size: ${paperSize === "2t" ? "74mm auto" : "37mm auto"}; 
+              size: ${paperSize === "2t" ? "72mm auto" : "36mm auto"}; 
             }
             html, body {
               margin: 0;
@@ -192,15 +192,20 @@ export function BarcodeDialog({ note }: BarcodeDialogProps) {
               position: absolute;
               left: 0;
               top: 0;
-              width: ${paperSize === "2t" ? "76mm" : "38mm"} !important;
+              height: 22mm !important;
+              width: ${paperSize === "2t" ? "72mm" : "36mm"} !important;
               display: grid !important;
               grid-template-columns: ${
                 paperSize === "2t" ? "1fr 1fr" : "1fr"
               } !important;
-              gap: 0 !important;
+              gap: 2mm !important;
+              padding: 0 1mm !important;
               border: none !important;
             }
             #barcode-print-area > div {
+              width: 35mm !important; /* Mỗi tem rộng khoảng 35mm, còn lại là gap */
+              height: 22mm !important;
+              overflow: hidden;
               border: none !important; /* Khi in thật không in viền */
               page-break-inside: avoid;
             }

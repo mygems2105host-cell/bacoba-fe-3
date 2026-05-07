@@ -118,7 +118,7 @@ function ProvidersList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [meta, setMeta] = useState({ totalPages: 1, currentPage: 1 });
-
+  const [searchTerm, setSearchTerm] = useState("");
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -156,6 +156,19 @@ function ProvidersList() {
   useEffect(() => {
     fetchData();
   }, [searchQuery, meta.currentPage, selectedStatus]);
+
+  useEffect(() => {
+    // Tạo một timer để trì hoãn việc gọi API
+    const delayDebounceFn = setTimeout(() => {
+      // Chỉ khi người dùng ngừng gõ 500ms thì mới cập nhật searchQuery chính
+      // searchQuery thay đổi sẽ kích hoạt logic fetchData trong useEffect phía dưới (nếu bạn tách riêng)
+      // Hoặc gọi trực tiếp fetchData ở đây:
+      setSearchQuery(searchTerm);
+    }, 500); // 500ms là khoảng thời gian hợp lý
+
+    // Cleanup function: Xóa timer cũ nếu người dùng tiếp tục gõ trước khi hết 500ms
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
 
   // Logic lọc Nhà cung cấp tại Client dựa trên trạng thái
   // const filteredProviders = useMemo(() => {
@@ -218,10 +231,10 @@ function ProvidersList() {
             type="search"
             placeholder="Tìm theo mã hoặc tên NCC..."
             className="border-input"
-            value={searchQuery}
+            value={searchTerm} // Dùng searchTerm để input mượt mà
             onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setMeta((prev) => ({ ...prev, currentPage: 1 })); // Reset về trang 1 khi search
+              setSearchTerm(e.target.value); // Cập nhật state gõ phím ngay lập tức
+              setMeta((prev) => ({ ...prev, currentPage: 1 })); // Reset về trang 1
             }}
           />
         </div>
