@@ -70,6 +70,17 @@ export interface ProductsApiResponse {
   success: boolean;
   message: string;
   data: Product[];
+  meta: {
+    totalItems: number;
+    currentPage: number;
+    pageSize: number;
+    totalPages: number;
+  };
+}
+export interface SearchedProductsApiResponse {
+  success: boolean;
+  message: string;
+  data: Product[];
   meta?: {
     totalItems: number;
     currentPage: number;
@@ -92,7 +103,7 @@ export const getProducts = async (params?: GetProductsParams) => {
 
 export const getSearchedProducts = async (params?: GetProductsParams) => {
   try {
-    const response = await apiClient.get<ProductsApiResponse>("/products/search-list", {
+    const response = await apiClient.get<SearchedProductsApiResponse>("/products/search-list", {
       params
     });
     return response.data;
