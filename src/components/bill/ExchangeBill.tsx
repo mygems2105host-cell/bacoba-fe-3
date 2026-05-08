@@ -52,7 +52,7 @@ import {
 import { toast } from "sonner";
 import {
   exchangeBill,
-  getProducts,
+  getSearchedProducts,
   type ExchangeBillParams,
 } from "@/services/api";
 import type { Product } from "@/types";
@@ -224,10 +224,9 @@ export function ExchangeBill({
 
       setIsLoadingSearch(true);
       try {
-        // Gọi API getProducts với param search từ file api.ts đã ghi nhớ
-        const res = await getProducts({
-          search: term,
-          pageSize: 20, // Chỉ lấy top 20 kết quả phù hợp nhất
+        // Gọi API getSearchedProducts với param search từ file api.ts đã ghi nhớ
+        const res = await getSearchedProducts({
+          search: term.toUpperCase()
         });
 
         if (res.success) {

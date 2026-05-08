@@ -70,7 +70,7 @@ export interface ProductsApiResponse {
   success: boolean;
   message: string;
   data: Product[];
-  meta: {
+  meta?: {
     totalItems: number;
     currentPage: number;
     pageSize: number;
@@ -81,6 +81,18 @@ export interface ProductsApiResponse {
 export const getProducts = async (params?: GetProductsParams) => {
   try {
     const response = await apiClient.get<ProductsApiResponse>("/products", {
+      params
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    throw error;
+  }
+};
+
+export const getSearchedProducts = async (params?: GetProductsParams) => {
+  try {
+    const response = await apiClient.get<ProductsApiResponse>("/products/search-list", {
       params
     });
     return response.data;

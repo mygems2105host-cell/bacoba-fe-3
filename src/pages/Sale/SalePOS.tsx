@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { type Bill, type Product } from "@/types";
-import { createBill, getProducts, type CreateBillParams } from "@/services/api";
+import { createBill, getSearchedProducts, type CreateBillParams } from "@/services/api";
 
 const MAX_BILLS = 30;
 const STORAGE_KEY = "temp_sales_pos_bills";
@@ -103,9 +103,8 @@ export default function SalePOS() {
       setIsSearching(true);
       try {
         // Gọi API từ backend với tham số search (theo ảnh Postman của bạn)
-        const response = await getProducts({
-          search: term,
-          pageSize: 100000, // Giới hạn số lượng trả về để nhanh hơn
+        const response = await getSearchedProducts({
+          search: term.toUpperCase()
         });
 
         if (response.success) {
@@ -130,7 +129,7 @@ export default function SalePOS() {
   //   const fetchInitialProducts = async () => {
   //     setIsLoadingProducts(true);
   //     try {
-  //       const response = await getProducts({ pageSize: 100000 });
+  //       const response = await getSearchedProducts({ pageSize: 100000 });
   //       if (response.success) {
   //         const variantsOnly = response.data.flatMap((parent) =>
   //           parent.variants && Array.isArray(parent.variants) ? parent.variants : []
