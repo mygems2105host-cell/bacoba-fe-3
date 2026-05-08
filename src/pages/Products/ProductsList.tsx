@@ -68,6 +68,7 @@ import EditVariantDialog from "@/components/products/EditVariantDialog";
 import { toast } from "sonner"; // Hoặc thư viện thông báo bạn đang dùng
 import RenameProductDialog from "@/components/products/RenameProductDialog";
 import AddMoreVariantsDialog from "@/components/products/AddMoreVariantsDialog";
+import { GenBarcodeDialog } from "./GenBarcodeDialog";
 
 const FilterSkeleton = () => (
   <div className="flex flex-col gap-y-8">
@@ -370,68 +371,75 @@ function ProductsList() {
   // };
 
   const TableSkeleton = () => (
-      
-          <div className="rounded-md border border-border">
-            <Table>
-              <TableHeader className="bg-muted/50">
-                <TableRow>
-                  <TableHead className="w-[40px]"></TableHead>
-                  <TableHead className="w-[50px]">
-                    <Skeleton className="h-4 w-4" />
-                  </TableHead>
-                  <TableHead>
-                    <Skeleton className="h-4 w-20" />
-                  </TableHead>
-                  <TableHead>
-                    <Skeleton className="h-4 w-40" />
-                  </TableHead>
-                  <TableHead className="text-right">
-                    <Skeleton className="h-4 w-16 ml-auto" />
-                  </TableHead>
-                  <TableHead className="text-right">
-                    <Skeleton className="h-4 w-16 ml-auto" />
-                  </TableHead>
-                  <TableHead className="text-right">
-                    <Skeleton className="h-4 w-12 ml-auto" />
-                  </TableHead>
-                  <TableHead className="w-[60px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[1, 2, 3, 4, 5].map((row) => (
-                  <TableRow key={row} className="border-border">
-                    <TableCell>
-                      <Skeleton className="h-4 w-4" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-4" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-16" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-64" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-16 ml-auto" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-16 ml-auto" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-10 ml-auto" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-8 w-8 rounded-full ml-auto" />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+    <div className="rounded-md border border-border">
+      <Table>
+        <TableHeader className="bg-muted/50">
+          <TableRow>
+            <TableHead className="w-[40px]"></TableHead>
+            <TableHead className="w-[50px]">
+              <Skeleton className="h-4 w-4" />
+            </TableHead>
+            <TableHead>
+              <Skeleton className="h-4 w-20" />
+            </TableHead>
+            <TableHead>
+              <Skeleton className="h-4 w-40" />
+            </TableHead>
+            <TableHead className="text-right">
+              <Skeleton className="h-4 w-16 ml-auto" />
+            </TableHead>
+            <TableHead className="text-right">
+              <Skeleton className="h-4 w-16 ml-auto" />
+            </TableHead>
+            <TableHead className="text-right">
+              <Skeleton className="h-4 w-12 ml-auto" />
+            </TableHead>
+            <TableHead className="w-[60px]"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {[1, 2, 3, 4, 5].map((row) => (
+            <TableRow key={row} className="border-border">
+              <TableCell>
+                <Skeleton className="h-4 w-4" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-4 w-4" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-4 w-16" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-4 w-64" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-4 w-16 ml-auto" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-4 w-16 ml-auto" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-4 w-10 ml-auto" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-8 w-8 rounded-full ml-auto" />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
 
-         
-    );
+  const formatDate = (dateString: any) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
 
   return (
     <div className="w-full h-full p-5 flex flex-wrap gap-y-6 bg-background text-foreground">
@@ -459,6 +467,7 @@ function ProductsList() {
             onSuccess={fetchProductsData}
             refetchAttributes={fetchAttributesData}
           />
+          
           <Button
             variant={"ghost"}
             onClick={handleReload}
@@ -466,6 +475,7 @@ function ProductsList() {
           >
             <RefreshCcw className={isMetadataLoading ? "animate-spin" : ""} />
           </Button>
+          <GenBarcodeDialog selectedProducts={selectedVariants} />
           <AddNewReceivedNote
             selectedProducts={selectedVariants}
             onSuccess={handleClearSelection}
@@ -615,6 +625,9 @@ function ProductsList() {
                   <TableHead className="font-bold text-foreground">
                     Tên hàng hóa
                   </TableHead>
+                  <TableHead className="font-bold text-foreground">
+                    Ngày tạo
+                  </TableHead>
                   <TableHead className="text-right font-bold text-foreground">
                     Giá vốn
                   </TableHead>
@@ -681,6 +694,9 @@ function ProductsList() {
                         </TableCell>
                         <TableCell className="min-w-[400px] max-w-[400px] text-sm font-medium whitespace-normal break-words">
                           {product.name}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {formatDate(product.createdAt)}
                         </TableCell>
                         <TableCell className="text-right font-medium">
                           {product.initialPrice.toLocaleString()}

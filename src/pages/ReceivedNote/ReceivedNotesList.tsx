@@ -337,7 +337,7 @@ function ReceivedNotesList() {
                 />
               </TableHead>
               <TableHead className="font-bold">Mã phiếu nhập</TableHead>
-              <TableHead className="font-bold">Thời gian</TableHead>
+              <TableHead className="font-bold">Ngày nhập</TableHead>
               <TableHead className="text-right font-bold">
                 Nhà cung cấp
               </TableHead>
@@ -396,8 +396,7 @@ function ReceivedNotesList() {
                           day: "2-digit",
                           month: "2-digit",
                           year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
+                          
                         })}
                       </TableCell>
                       <TableCell className="text-right">
