@@ -109,6 +109,7 @@ export interface ProductAttribute {
 }
 
 export interface CreateProductParams {
+  prefix?: string;
   name: string;
   productTypeId: string;
   brandId: string;

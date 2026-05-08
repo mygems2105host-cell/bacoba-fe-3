@@ -54,7 +54,11 @@ import {
   type Attribute,
 } from "@/types";
 import TagCombobox from "../ui/TagCombobox";
-import { createAttribute, createProduct, type CreateProductParams } from "@/services/api";
+import {
+  createAttribute,
+  createProduct,
+  type CreateProductParams,
+} from "@/services/api";
 import { toast } from "sonner";
 
 // Helper format số cho hiển thị
@@ -91,6 +95,7 @@ function AddNewProduct({
   const [open, setOpen] = useState(false);
 
   const FormSchema = z.object({
+    prefix: z.string().max(5, "Mã tiền tố tối đa 5 ký tự").optional(),
     name: z.string().min(1, "Tên hàng là bắt buộc"),
     productTypeId: z.string().min(1, "Vui lòng chọn nhóm hàng"),
     initialPrice: z.coerce.number().min(0, "Giá vốn không được âm"),
@@ -123,6 +128,7 @@ function AddNewProduct({
   const form = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
+      prefix: "",
       name: "",
       productTypeId: "",
       initialPrice: 0,
@@ -252,6 +258,7 @@ function AddNewProduct({
         );
 
       const payload: CreateProductParams = {
+        prefix: data.prefix,
         name: data.name,
         productTypeId: data.productTypeId,
         brandId: "1",
@@ -291,13 +298,13 @@ function AddNewProduct({
   //       attributeTypeId: typeId,
   //       value: value,
   //     });
-      
+
   //     toast.success(`Đã thêm giá trị "${value}"`);
-      
-  //     // Quan trọng: Sau khi tạo thành công ở Server, bạn cần cập nhật lại list attributes 
+
+  //     // Quan trọng: Sau khi tạo thành công ở Server, bạn cần cập nhật lại list attributes
   //     // đang hiển thị ở component này. Thông thường là gọi lại API lấy danh sách ở component cha.
-  //     if (refetchAttributes) refetchAttributes(); 
-      
+  //     if (refetchAttributes) refetchAttributes();
+
   //     return newAttr; // Trả về để Combobox có thể chọn luôn giá trị vừa tạo
   //   } catch (error) {
   //     toast.error("Không thể thêm thuộc tính mới");
@@ -316,22 +323,22 @@ function AddNewProduct({
       const response = (await createAttribute({
         attributeTypeId: typeId,
         value: value,
-      })) as any; 
-  
+      })) as any;
+
       // Lấy ID và Value từ response (kiểm tra lại cấu trúc trả về của Server nhé)
       const newId = response.id || response.data?.id;
       const newValue = response.value || response.data?.value || value;
-  
+
       const newAttrFormatted = {
         id: String(newId),
         name: newValue,
       };
-  
+
       // Cập nhật form: Thêm cái mới vào danh sách đang chọn
       onChange([...currentSelected, newAttrFormatted]);
-  
+
       toast.success(`Đã thêm và chọn: ${value}`);
-      
+
       if (refetchAttributes) refetchAttributes();
     } catch (error) {
       console.error(error);
@@ -371,6 +378,31 @@ function AddNewProduct({
             <div className="flex-1 overflow-y-auto p-6 pt-2">
               <div className="space-y-6">
                 {/* --- THÔNG TIN CHUNG --- */}
+                <FormField
+                  control={form.control}
+                  name="prefix"
+                  render={({ field }) => (
+                    <FormItem className="col-span-1">
+                      <FormLabel className="text-foreground after:content-['*'] after:ml-0.5 after:text-destructive font-medium">
+                        Tiền tố mã (Prefix){" "}
+                        {/* Có thể đổi label cho rõ nghĩa */}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="VD: BNLS"
+                          {...field}
+                          maxLength={5} // Giới hạn ngay tại ô nhập liệu
+                          className="border-border focus-visible:ring-primary uppercase" // Thêm uppercase nếu muốn mã luôn viết hoa
+                          onChange={(e) =>
+                            field.onChange(e.target.value.toUpperCase())
+                          } // Tùy chọn: Tự động viết hoa
+                        />
+                      </FormControl>
+                      <FormMessage className="text-destructive text-xs" />
+                    </FormItem>
+                  )}
+                />
+
                 <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                   <FormItem className="col-span-2">
                     <FormLabel className="text-foreground after:content-['*'] after:ml-0.5 after:text-destructive font-medium">
