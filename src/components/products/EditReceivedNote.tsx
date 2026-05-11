@@ -224,6 +224,7 @@ export function EditReceivedNote({
           variant="default"
           size="sm"
           className="flex items-center gap-2 bg-chart-2 hover:bg-chart-2/90"
+          disabled={receivedNote.status !== "confirm"}
         >
           <Edit3 className="w-4 h-4" />
           Chỉnh sửa
