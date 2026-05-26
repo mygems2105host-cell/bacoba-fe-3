@@ -742,6 +742,7 @@ function ProductsList() {
                               >
                                 <RenameProductDialog
                                   product={product}
+                                  productTypes={productTypes}
                                   onSuccess={fetchProductsData}
                                 />
                               </DropdownMenuItem>
@@ -802,6 +803,9 @@ function ProductsList() {
                               </TableCell>
                               <TableCell className="pl-10 text-sm italic text-muted-foreground">
                                 {variant.name}
+                              </TableCell>
+                              <TableCell className="text-right text-xs text-muted-foreground italic">
+                              
                               </TableCell>
                               <TableCell className="text-right text-xs text-muted-foreground italic">
                                 {variant.initialPrice.toLocaleString()}

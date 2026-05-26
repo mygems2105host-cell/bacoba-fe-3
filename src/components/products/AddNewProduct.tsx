@@ -671,6 +671,7 @@ function AddNewProduct({
                                   render={({ field }) => (
                                     <Input
                                       type="text"
+                                      disabled
                                       className="h-9 text-right border-border focus-visible:ring-primary"
                                       value={formatNumber(field.value)}
                                       onChange={(e) =>
@@ -691,6 +692,7 @@ function AddNewProduct({
                                       type="text"
                                       className="h-9 text-right border-border focus-visible:ring-primary text-primary font-medium"
                                       value={formatNumber(field.value)}
+                                      disabled
                                       onChange={(e) =>
                                         field.onChange(
                                           parseFormattedNumber(e.target.value)

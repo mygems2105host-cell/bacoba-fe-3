@@ -147,15 +147,17 @@ export function AddNewReceivedNote({
   }, [selectedProducts, replace]);
 
   const totals = useMemo(() => {
+    let totalQuantity = 0; // Thêm biến lưu tổng số lượng
     const subTotal = (watchedProducts || []).reduce((sum, item) => {
       const qty = item?.addQuantity || 0;
       const price = item?.price || 0;
       const disc = item?.discount || 0;
+      totalQuantity += qty; // Cộng dồn số lượng từng sản phẩm
       return sum + (price - disc) * qty;
     }, 0);
     const totalAmount = subTotal - (watchedTotalDiscount || 0);
     const debt = totalAmount - (watchedPaidAmount || 0);
-    return { subTotal, totalAmount, debt };
+    return { subTotal, totalAmount,totalQuantity, debt };
   }, [watchedProducts, watchedTotalDiscount, watchedPaidAmount]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -209,11 +211,11 @@ export function AddNewReceivedNote({
         providerId: data.providerId, // Chuyển từ string sang number nếu backend yêu cầu
         phoneNumber: "", // Bạn có thể lấy từ object provider nếu có dữ liệu NCC
         description: data.description || "",
-        discount: data.totalDiscount, 
-        payedMoney: data.paidAmount, 
-        debtMoney: totals.debt,      // Giá trị này đã được tính: (Total - Discount) - Paid
-        total: totals.totalAmount,   // Giá trị này đã được tính: Subtotal - Discount
-        
+        discount: data.totalDiscount,
+        payedMoney: data.paidAmount,
+        debtMoney: totals.debt, // Giá trị này đã được tính: (Total - Discount) - Paid
+        total: totals.totalAmount, // Giá trị này đã được tính: Subtotal - Discount
+
         status: "confirm",
         receivedProducts: data.receivedProducts.map((p) => ({
           productId: p.id,
@@ -252,15 +254,15 @@ export function AddNewReceivedNote({
         debtTotal: 0,
         total: 0,
       });
-  
+
       if (res.success && res.data) {
         toast.success("Đã tạo nhà cung cấp mới");
         await fetchData();
-  
-        // SỬA TẠI ĐÂY: 
+
+        // SỬA TẠI ĐÂY:
         // Nếu res.data là đối tượng mới tạo:
         const newProvider = Array.isArray(res.data) ? res.data[0] : res.data;
-        
+
         if (newProvider?.id) {
           setValue("providerId", newProvider.id.toString());
         }
@@ -471,6 +473,14 @@ export function AddNewReceivedNote({
                     <Separator />
 
                     <div className="space-y-4">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">
+                          Tổng số lượng:
+                        </span>
+                        <span className="font-semibold">
+                          {formatDisplay(totals.totalQuantity)}
+                        </span>
+                      </div>
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-muted-foreground">
                           Tổng tiền hàng:
