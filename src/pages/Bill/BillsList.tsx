@@ -46,6 +46,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PrintBillDialog } from "../Products/PrintBillDialog";
 
 
 const TableSkeleton = () => {
@@ -554,6 +555,7 @@ function BillsList() {
                                   <FileText className="w-4 h-4" />
                                   Chỉnh sửa thông tin
                                 </Button> */}
+                                <PrintBillDialog bill={bill}/>
                                 <EditBill bill={bill} onSuccess={fetchBills} />
 
                                 <ExchangeBill
