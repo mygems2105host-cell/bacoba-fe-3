@@ -25,19 +25,21 @@ interface GenBarcodeDialogProps {
 }
 
 // Component bổ trợ để render barcode bằng thư viện JsBarcode
+// Component bổ trợ để render barcode bằng thư viện JsBarcode (Đã chuyển sang SVG)
 function BarcodeGenerator({ value }: { value: string }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
-    if (canvasRef.current) {
+    if (svgRef.current) {
       try {
-        jsBarcode(canvasRef.current, value, {
+        jsBarcode(svgRef.current, value, {
           format: "CODE128",
-          width: 1.1,          // Độ rộng vạch tương ứng cấu hình cũ
-          height: 32,          // Chiều cao vạch tương ứng cấu hình cũ
-          displayValue: false, // Không hiển thị text bên dưới vạch mẫu
+          width: 2, // Giữ nguyên độ rộng vạch chuẩn
+          height: 55, // Giảm chiều cao xuống một chút (khoảng 50-60 là vừa đẹp với tem 20mm)
+          displayValue: false,
           margin: 0,
           background: "transparent",
+          flat: true, // KHỦNG: Giúp render vạch mượt, không sinh các pixel trung gian gây mờ biên
         });
       } catch (error) {
         console.error("JsBarcode error:", error);
@@ -45,7 +47,8 @@ function BarcodeGenerator({ value }: { value: string }) {
     }
   }, [value]);
 
-  return <canvas ref={canvasRef} />;
+  // BỎ w-full h-full, để SVG tự sinh kích thước tự nhiên của Vector, chỉ giới hạn chiều cao tối đa
+  return <svg ref={svgRef} className="max-h-full max-w-full block" />;
 }
 
 export function GenBarcodeDialog({ selectedProducts }: GenBarcodeDialogProps) {
@@ -103,14 +106,16 @@ export function GenBarcodeDialog({ selectedProducts }: GenBarcodeDialogProps) {
           className="gap-2 border-primary text-primary hover:bg-primary/10"
           disabled={selectedProducts.length === 0}
         >
-          <BarcodeIcon className="w-4 h-4" /> In mã vạch ({selectedProducts.length})
+          <BarcodeIcon className="w-4 h-4" /> In mã vạch (
+          {selectedProducts.length})
         </Button>
       </DialogTrigger>
 
       <DialogContent className="min-w-[95vw] max-w-[98vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col">
         <DialogHeader className="p-4 border-b flex flex-row items-center justify-between bg-muted/30">
           <DialogTitle className="flex items-center gap-2">
-            <Settings2 className="w-5 h-5 text-primary" /> Cấu hình tem in (Khổ 70x20mm)
+            <Settings2 className="w-5 h-5 text-primary" /> Cấu hình tem in (Khổ
+            70x20mm)
           </DialogTitle>
         </DialogHeader>
 
@@ -231,9 +236,15 @@ export function GenBarcodeDialog({ selectedProducts }: GenBarcodeDialogProps) {
                   <span>LƯU Ý CÀI ĐẶT MÁY IN:</span>
                 </div>
                 <ul className="text-[11px] text-muted-foreground list-decimal pl-4 space-y-1">
-                  <li>Margins (Lề): <b>None</b></li>
-                  <li>Scale (Tỷ lệ): <b>100%</b></li>
-                  <li>Khổ giấy: <b>70mm x 20mm</b></li>
+                  <li>
+                    Margins (Lề): <b>None</b>
+                  </li>
+                  <li>
+                    Scale (Tỷ lệ): <b>100%</b>
+                  </li>
+                  <li>
+                    Khổ giấy: <b>70mm x 20mm</b>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -304,12 +315,13 @@ export function GenBarcodeDialog({ selectedProducts }: GenBarcodeDialogProps) {
               justify-content: center; 
               width: 100%; 
               padding: 0;
-              margin: -1px 0;
+              margin: 0 0;
             }
 
-            .barcode-wrapper canvas {
-              max-width: 100%;
-              height: 9mm !important; /* Điều chỉnh nhẹ lại chiều cao canvas thực tế cho vừa khổ 20mm */
+            .barcode-wrapper svg {
+              image-rendering: -webkit-optimize-contrast;
+              image-rendering: crisp-edges;
+              image-rendering: pixelated;
             }
 
             .footer-info { 
