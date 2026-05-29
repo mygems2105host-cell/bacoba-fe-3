@@ -35,7 +35,7 @@ function BarcodeGenerator({ value }: { value: string }) {
         jsBarcode(svgRef.current, value, {
           format: "CODE128",
           width: 2, // Giữ nguyên độ rộng vạch chuẩn
-          height: 55, // Giảm chiều cao xuống một chút (khoảng 50-60 là vừa đẹp với tem 20mm)
+          height: 80, // Giảm chiều cao xuống một chút (khoảng 50-60 là vừa đẹp với tem 20mm)
           displayValue: false,
           margin: 0,
           background: "transparent",
@@ -278,14 +278,14 @@ export function GenBarcodeDialog({ selectedProducts }: GenBarcodeDialogProps) {
               border-bottom: 1px dashed hsl(var(--border));
               background: white;
               box-sizing: border-box;
-              padding: 0.5mm 1mm;
+              padding: 1mm 1.5mm;
               justify-content: space-between;
               align-items: center;
             }
 
             .barcode-item {
               width: 33mm; /* Co lại 1 chút để vừa tổng hàng 70mm (33mm * 2 + 2mm gap = 68mm, dư biên an toàn) */
-              height: 19mm; /* Co lại 1 chút cho vừa khít box 20mm */
+              height: 18mm; /* Co lại 1 chút cho vừa khít box 20mm */
               display: flex;
               flex-direction: column;
               justify-content: space-between;
@@ -294,15 +294,15 @@ export function GenBarcodeDialog({ selectedProducts }: GenBarcodeDialogProps) {
             }
 
             .product-name { 
-              font-size: 7.5px; 
+              font-size: 5.5px; 
               line-height: 1;
               font-weight: 700; 
               text-transform: uppercase; 
               text-align: center; 
               width: 100%;
-              max-height: 16px;
+              max-height: 20px;
               display: -webkit-box;
-              -webkit-line-clamp: 2;
+              -webkit-line-clamp: 3;
               -webkit-box-orient: vertical;
               overflow: hidden;
               color: black;
@@ -314,11 +314,12 @@ export function GenBarcodeDialog({ selectedProducts }: GenBarcodeDialogProps) {
               align-items: center; 
               justify-content: center; 
               width: 100%; 
-              padding: 0;
-              margin: 0 0;
+              padding: 0 2mm;
+              margin: 1px 0;
             }
 
             .barcode-wrapper svg {
+              max-height: 8mm !important;
               image-rendering: -webkit-optimize-contrast;
               image-rendering: crisp-edges;
               image-rendering: pixelated;

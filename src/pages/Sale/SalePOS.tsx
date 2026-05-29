@@ -454,37 +454,49 @@ export default function SalePOS() {
   };
 
   // 2. useEffect lắng nghe máy quét (Sửa lại dependencies để tránh lag)
+  // 2. useEffect lắng nghe máy quét (Tối ưu hóa riêng cho máy quét độ trễ cao Mexxen)
   useEffect(() => {
     let buffer = "";
     let lastTime = Date.now();
 
     const handleKey = (e: KeyboardEvent) => {
-      // Không xử lý nếu đang gõ trong các input khác (trừ ô search)
-      if (
-        document.activeElement?.tagName === "INPUT" &&
-        document.activeElement !== searchInputRef.current
-      )
-        return;
-
       const now = Date.now();
-      if (now - lastTime > 50) buffer = ""; // Reset nếu gõ chậm (người gõ)
+      
+      // Nếu khoảng cách giữa 2 phím > 50ms -> Người gõ -> Reset bộ đệm máy quét
+      if (now - lastTime > 50) {
+        buffer = "";
+      }
       lastTime = now;
 
+      // Xử lý khi kết thúc chuỗi quét (Máy Mexxen luôn kết thúc bằng phím Enter)
       if (e.key === "Enter") {
         if (buffer.length > 2) {
           e.preventDefault();
+          e.stopPropagation();
           handleBarcodeScan(buffer);
           buffer = "";
         }
-      } else if (e.key.length === 1) {
+        return;
+      }
+
+      // CHỈ NHẬN KÝ TỰ CHỮ/SỐ (Độ dài key = 1), loại bỏ các phím điều hướng Shift, Alt, Control...
+      if (e.key.length === 1) {
         buffer += e.key;
+
+        // ĐẶC BIỆT CHO MEXXEN: Nếu thiết bị đang focus ở các input khác (Tên KH, SĐT, Đơn giá...) 
+        // mà máy quét đang bắn code, lập tức chặn hành vi ghi đè dữ liệu lỗi vào các ô đó
+        if (
+          document.activeElement?.tagName === "INPUT" &&
+          document.activeElement !== searchInputRef.current
+        ) {
+          e.preventDefault();
+        }
       }
     };
 
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, []); // Để mảng rỗng để không bị đăng ký lại event liên tục
-
+    window.addEventListener("keydown", handleKey, true); // Dùng capture-phase để chặn triệt để ghi đè input
+    return () => window.removeEventListener("keydown", handleKey, true);
+  }, []); // Giữ nguyên mảng rỗng để không bị đăng ký lại event liên tục
   useEffect(() => {
     const handleF2 = (e: KeyboardEvent) => {
       if (e.key === "F2") {
