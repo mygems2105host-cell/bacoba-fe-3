@@ -1,4 +1,4 @@
-import  { useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,31 +13,44 @@ import {
   Settings2,
   AlertTriangle,
 } from "lucide-react";
-import Barcode from "react-barcode";
 import { useReactToPrint } from "react-to-print";
+import { QRCode } from "react-qr-code";
 import type { ReceivedNote } from "@/types";
 
 interface BarcodeDialogProps {
   note: ReceivedNote;
 }
 
+function QRCodeGenerator({ value }: { value: string }) {
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-white p-[1px]">
+      <QRCode
+        size={256}
+        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+        value={value}
+        viewBox={`0 0 256 256`}
+      />
+    </div>
+  );
+}
+
 export function BarcodeDialog({ note }: BarcodeDialogProps) {
   // Ref để tham chiếu đến vùng in
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Logic tạo danh sách tem phẳng
+  // Logic tạo danh sách tem phẳng (Đồng bộ cấu trúc tạo uniqueKey bảo đảm tính duy nhất)
   const allLabels = useMemo(() => {
     return (
-      note.receivedProducts?.flatMap((product: any) => {
+      note.receivedProducts?.flatMap((product, pIdx) => {
         return Array.from({ length: product.addQuantity }).map((_, index) => ({
           ...product,
-          uniqueKey: `${product.productId}-${index}`,
+          uniqueKey: `${product.productId}-${pIdx}-${index}`,
         }));
       }) || []
     );
   }, [note.receivedProducts]);
 
-  // Nhóm tem thành từng cặp (2 tem mỗi hàng 72mm)
+  // Nhóm tem thành từng cặp (2 tem mỗi hàng khổ 70mm giống GenBarcodeDialog)
   const labelGroups = useMemo(() => {
     const groups = [];
     for (let i = 0; i < allLabels.length; i += 2) {
@@ -66,15 +79,15 @@ export function BarcodeDialog({ note }: BarcodeDialogProps) {
       </DialogTrigger>
 
       <DialogContent className="min-w-[95vw] max-w-[98vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col">
-        {/* Header */}
+        {/* Header - Cập nhật thông tin khổ giấy 70x20mm */}
         <DialogHeader className="p-4 border-b flex flex-row items-center justify-between bg-muted/30">
           <DialogTitle className="flex items-center gap-2">
-            <Settings2 className="w-5 h-5 text-primary" /> Cấu hình tem in (Khổ 72x22mm)
+            <Settings2 className="w-5 h-5 text-primary" /> Cấu hình tem in (Khổ 70x20mm - Tem Đôi)
           </DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-1 overflow-hidden">
-          {/* LEFT: Preview - Đồng bộ UI với GenBarcodeDialog */}
+          {/* LEFT: Preview - Đồng bộ UI bố cục ngang và thành phần bên trong với GenBarcodeDialog */}
           <div className="flex-1 bg-secondary/10 p-10 overflow-y-auto flex justify-center custom-scrollbar">
             <div
               ref={contentRef}
@@ -83,31 +96,28 @@ export function BarcodeDialog({ note }: BarcodeDialogProps) {
             >
               {labelGroups.map((group, gIndex) => (
                 <div key={gIndex} className="print-page-row">
-                  {group.map((item: any) => (
+                  {group.map((item) => (
                     <div key={item.uniqueKey} className="barcode-item">
-                      <div className="product-name">{item.productName}</div>
-                      <div className="barcode-wrapper">
-                        <Barcode
-                          value={item.productId}
-                          width={1.1}
-                          height={32}
-                          displayValue={false}
-                          margin={0}
-                          renderer="canvas"
-                          background="transparent"
-                        />
+                      {/* Cột trái của tem: chứa Tên và Chân trang */}
+                      <div className="label-info-left">
+                        <div className="product-name">{item.productName}</div>
+                        <div className="footer-info">
+                          <span className="sku">{item.productId}</span>
+                          <span className="price">
+                            {Number((item.total / item.addQuantity) || 0).toLocaleString()}đ
+                          </span>
+                        </div>
                       </div>
-                      <div className="footer-info">
-                        <span className="sku">{item.productId}</span>
-                        <span className="price">
-                          {Number(item.total / item.addQuantity || 0).toLocaleString()}đ
-                        </span>
+                      
+                      {/* Cột phải của tem: Chứa mã QR vuông vắn */}
+                      <div className="barcode-wrapper">
+                        <QRCodeGenerator value={item.productId} />
                       </div>
                     </div>
                   ))}
                   {/* Fill ô trống nếu hàng chỉ có 1 tem */}
                   {group.length === 1 && (
-                    <div className="barcode-item invisible" />
+                    <div className="barcode-item invisible" aria-hidden="true" />
                   )}
                 </div>
               ))}
@@ -141,9 +151,15 @@ export function BarcodeDialog({ note }: BarcodeDialogProps) {
                   <span>LƯU Ý CÀI ĐẶT MÁY IN:</span>
                 </div>
                 <ul className="text-[11px] text-muted-foreground list-decimal pl-4 space-y-1">
-                  <li>Margins (Lề): <b>None</b></li>
-                  <li>Scale (Tỷ lệ): <b>100%</b></li>
-                  <li>Khổ giấy: <b>72mm x 22mm</b></li>
+                  <li>
+                    Margins (Lề): <b>None</b>
+                  </li>
+                  <li>
+                    Scale (Tỷ lệ): <b>100%</b>
+                  </li>
+                  <li>
+                    Khổ giấy: <b>70mm x 20mm</b>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -159,95 +175,112 @@ export function BarcodeDialog({ note }: BarcodeDialogProps) {
           </div>
         </div>
 
-        {/* Tối ưu hóa CSS Print - Đồng bộ tuyệt đối */}
+        {/* Tối ưu hóa CSS Print - Đồng bộ kích thước 70x20mm và layout chia ngang */}
         <style
           dangerouslySetInnerHTML={{
             __html: `
             .barcode-container-print {
               background: white;
-              padding: 2mm;
+              padding: 0;
               height: fit-content;
               box-shadow: 0 0 20px rgba(0,0,0,0.1);
             }
 
             .print-page-row {
               display: flex;
-              width: 72mm;
-              height: 22mm;
+              width: 70mm; 
+              height: 20mm; 
               gap: 2mm;
               border-bottom: 1px dashed hsl(var(--border));
               background: white;
               box-sizing: border-box;
-              padding: 0.5mm 1mm;
+              padding: 1mm 1mm;
               justify-content: space-between;
               align-items: center;
             }
 
             .barcode-item {
-              width: 34mm; 
-              height: 21mm;
+              width: 33mm; 
+              height: 18mm; 
               display: flex;
-              flex-direction: column;
+              flex-direction: row; /* Chia ngang thành 2 phần: chữ bên trái, QR bên phải */
               justify-content: space-between;
               align-items: center;
               overflow: hidden;
+              gap: 1mm;
+              box-sizing: border-box;
+            }
+
+            .label-info-left {
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+              height: 100%;
+              flex: 1;
+              min-width: 0; 
             }
 
             .product-name { 
-              font-size: 7.5px; 
-              line-height: 1;
+              font-size: 6.5px; 
+              line-height: 1.1;
               font-weight: 700; 
               text-transform: uppercase; 
-              text-align: center; 
+              text-align: left;
               width: 100%;
-              max-height: 16px;
+              max-height: 11mm;
               display: -webkit-box;
-              -webkit-line-clamp: 2;
+              -webkit-line-clamp: 4;
               -webkit-box-orient: vertical;
               overflow: hidden;
               color: black;
             }
 
             .barcode-wrapper { 
-              flex: 1; 
+              width: 14mm !important; 
+              height: 14mm !important;
               display: flex; 
               align-items: center; 
               justify-content: center; 
-              width: 100%; 
-              padding: 0;
-              margin: -1px 0;
+              flex-shrink: 0;
             }
 
-            .barcode-wrapper canvas {
-              max-width: 100%;
-              height: 10mm !important;
+            .barcode-wrapper svg {
+              width: 14mm !important;
+              height: 14mm !important;
+              image-rendering: -webkit-optimize-contrast;
+              image-rendering: crisp-edges;
             }
 
             .footer-info { 
               display: flex; 
-              justify-content: space-between; 
+              flex-direction: column;
+              align-items: flex-start;
               width: 100%; 
-              align-items: center;
-              padding: 0 1mm;
               color: black;
-              height: 10px;
+              line-height: 1;
             }
 
-            .sku { font-size: 6.5px; font-family: monospace; }
-            .price { font-size: 8.5px; font-weight: 900; }
+            .sku { font-size: 6px; font-weight: 600; }
+            .price { font-size: 8px; font-weight: 900; margin-top: 1px; }
 
             @media print {
               @page {
-                size: 72mm 22mm;
+                size: 70mm 20mm; 
                 margin: 0 !important;
               }
-              body { margin: 0 !important; }
+              body { 
+                margin: 0 !important; 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact;
+              }
               .barcode-container-print {
                 padding: 0 !important;
                 box-shadow: none !important;
               }
               .print-page-row {
+                display: flex !important;
                 border-bottom: none !important;
+                break-after: page !important;
                 page-break-after: always !important;
                 gap: 2mm !important;
               }

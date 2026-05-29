@@ -293,13 +293,13 @@ export function GenBarcodeDialog({ selectedProducts }: GenBarcodeDialogProps) {
             }
 
             .product-name { 
-              font-size: 5.5px; 
+              font-size: 6.5px; 
               line-height: 1.1;
               font-weight: 700; 
               text-transform: uppercase; 
               text-align: left;
               width: 100%;
-              max-height: 11mm; /* Chiếm tối đa 11mm chiều cao */
+              max-height: 20mm; /* Chiếm tối đa 11mm chiều cao */
               display: -webkit-box;
               -webkit-line-clamp: 4; /* Cho phép hiển thị lên đến 4 dòng chữ cực nhỏ */
               -webkit-box-orient: vertical;
@@ -332,7 +332,7 @@ export function GenBarcodeDialog({ selectedProducts }: GenBarcodeDialogProps) {
               line-height: 1;
             }
 
-            .sku { font-size: 6px; font-family: monospace; opacity: 0.8; }
+            .sku { font-size: 6px; font-weight: 600; }
             .price { font-size: 8px; font-weight: 900; margin-top: 1px; }
 
             @media print {
