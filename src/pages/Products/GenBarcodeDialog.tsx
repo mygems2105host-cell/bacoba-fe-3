@@ -17,38 +17,24 @@ import {
   Plus,
   Minus,
 } from "lucide-react";
-import jsBarcode from "jsbarcode";
 import { useReactToPrint } from "react-to-print";
+import { QRCode } from "react-qr-code";
 
 interface GenBarcodeDialogProps {
   selectedProducts: any[];
 }
 
-// Component bổ trợ để render barcode bằng thư viện JsBarcode
-// Component bổ trợ để render barcode bằng thư viện JsBarcode (Đã chuyển sang SVG)
-function BarcodeGenerator({ value }: { value: string }) {
-  const svgRef = useRef<SVGSVGElement>(null);
-
-  useEffect(() => {
-    if (svgRef.current) {
-      try {
-        jsBarcode(svgRef.current, value, {
-          format: "CODE128",
-          width: 2, // Giữ nguyên độ rộng vạch chuẩn
-          height: 80, // Giảm chiều cao xuống một chút (khoảng 50-60 là vừa đẹp với tem 20mm)
-          displayValue: false,
-          margin: 0,
-          background: "transparent",
-          flat: true, // KHỦNG: Giúp render vạch mượt, không sinh các pixel trung gian gây mờ biên
-        });
-      } catch (error) {
-        console.error("JsBarcode error:", error);
-      }
-    }
-  }, [value]);
-
-  // BỎ w-full h-full, để SVG tự sinh kích thước tự nhiên của Vector, chỉ giới hạn chiều cao tối đa
-  return <svg ref={svgRef} className="max-h-full max-w-full block" />;
+function QRCodeGenerator({ value }: { value: string }) {
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-white p-[1px]">
+      <QRCode
+        size={256}
+        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+        value={value}
+        viewBox={`0 0 256 256`}
+      />
+    </div>
+  );
 }
 
 export function GenBarcodeDialog({ selectedProducts }: GenBarcodeDialogProps) {
@@ -106,16 +92,14 @@ export function GenBarcodeDialog({ selectedProducts }: GenBarcodeDialogProps) {
           className="gap-2 border-primary text-primary hover:bg-primary/10"
           disabled={selectedProducts.length === 0}
         >
-          <BarcodeIcon className="w-4 h-4" /> In mã vạch (
-          {selectedProducts.length})
+          <BarcodeIcon className="w-4 h-4" /> In mã vạch ({selectedProducts.length})
         </Button>
       </DialogTrigger>
 
       <DialogContent className="min-w-[95vw] max-w-[98vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col">
         <DialogHeader className="p-4 border-b flex flex-row items-center justify-between bg-muted/30">
           <DialogTitle className="flex items-center gap-2">
-            <Settings2 className="w-5 h-5 text-primary" /> Cấu hình tem in (Khổ
-            70x20mm)
+            <Settings2 className="w-5 h-5 text-primary" /> Cấu hình tem in (Khổ 70x20mm - Tem Đôi)
           </DialogTitle>
         </DialogHeader>
 
@@ -188,16 +172,20 @@ export function GenBarcodeDialog({ selectedProducts }: GenBarcodeDialogProps) {
                 <div key={gIndex} className="print-page-row">
                   {group.map((item: any) => (
                     <div key={item.uniqueKey} className="barcode-item">
-                      <div className="product-name">{item.name}</div>
-                      <div className="barcode-wrapper">
-                        {/* Thay thế react-barcode bằng Component JsBarcode */}
-                        <BarcodeGenerator value={item.id} />
+                      {/* Cột trái của tem: chứa Tên và Chân trang */}
+                      <div className="label-info-left">
+                        <div className="product-name">{item.name}</div>
+                        <div className="footer-info">
+                          <span className="sku">{item.id}</span>
+                          <span className="price">
+                            {Number(item.salePrice || 0).toLocaleString()}đ
+                          </span>
+                        </div>
                       </div>
-                      <div className="footer-info">
-                        <span className="sku">{item.id}</span>
-                        <span className="price">
-                          {Number(item.salePrice || 0).toLocaleString()}đ
-                        </span>
+                      
+                      {/* Cột phải của tem: Chứa mã QR vuông vắn */}
+                      <div className="barcode-wrapper">
+                        <QRCodeGenerator value={item.id} />
                       </div>
                     </div>
                   ))}
@@ -265,82 +253,91 @@ export function GenBarcodeDialog({ selectedProducts }: GenBarcodeDialogProps) {
             __html: `
             .barcode-container-print {
               background: white;
-              padding: 2mm;
+              padding: 0;
               height: fit-content;
               box-shadow: 0 0 20px rgba(0,0,0,0.1);
             }
 
             .print-page-row {
               display: flex;
-              width: 70mm; /* Đã đổi từ 72mm thành 70mm */
-              height: 20mm; /* Đã đổi từ 22mm thành 20mm */
+              width: 70mm; 
+              height: 20mm; 
               gap: 2mm;
               border-bottom: 1px dashed hsl(var(--border));
               background: white;
               box-sizing: border-box;
-              padding: 1mm 1.5mm;
+              padding: 1mm 1mm;
               justify-content: space-between;
               align-items: center;
             }
 
             .barcode-item {
-              width: 33mm; /* Co lại 1 chút để vừa tổng hàng 70mm (33mm * 2 + 2mm gap = 68mm, dư biên an toàn) */
-              height: 18mm; /* Co lại 1 chút cho vừa khít box 20mm */
+              width: 33mm; 
+              height: 18mm; 
               display: flex;
-              flex-direction: column;
+              flex-direction: row; /* Chia ngang thành 2 phần: chữ bên trái, QR bên phải */
               justify-content: space-between;
               align-items: center;
               overflow: hidden;
+              gap: 1mm;
+              box-sizing: border-box;
+            }
+
+            .label-info-left {
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+              height: 100%;
+              flex: 1;
+              min-width: 0; 
             }
 
             .product-name { 
               font-size: 5.5px; 
-              line-height: 1;
+              line-height: 1.1;
               font-weight: 700; 
               text-transform: uppercase; 
-              text-align: center; 
+              text-align: left;
               width: 100%;
-              max-height: 20px;
+              max-height: 11mm; /* Chiếm tối đa 11mm chiều cao */
               display: -webkit-box;
-              -webkit-line-clamp: 3;
+              -webkit-line-clamp: 4; /* Cho phép hiển thị lên đến 4 dòng chữ cực nhỏ */
               -webkit-box-orient: vertical;
               overflow: hidden;
               color: black;
             }
 
             .barcode-wrapper { 
-              flex: 1; 
+              width: 14mm !important; 
+              height: 14mm !important;
               display: flex; 
               align-items: center; 
               justify-content: center; 
-              width: 100%; 
-              padding: 0 2mm;
-              margin: 1px 0;
+              flex-shrink: 0;
             }
 
             .barcode-wrapper svg {
-              max-height: 8mm !important;
+              width: 14mm !important;
+              height: 14mm !important;
               image-rendering: -webkit-optimize-contrast;
               image-rendering: crisp-edges;
-              image-rendering: pixelated;
             }
 
             .footer-info { 
               display: flex; 
-              justify-content: space-between; 
+              flex-direction: column;
+              align-items: flex-start;
               width: 100%; 
-              align-items: center;
-              padding: 0 1mm;
               color: black;
-              height: 10px;
+              line-height: 1;
             }
 
-            .sku { font-size: 6.5px; font-family: monospace; }
-            .price { font-size: 8.5px; font-weight: 900; }
+            .sku { font-size: 6px; font-family: monospace; opacity: 0.8; }
+            .price { font-size: 8px; font-weight: 900; margin-top: 1px; }
 
             @media print {
               @page {
-                size: 70mm 20mm; /* Cập nhật kích thước in chuẩn cho Driver máy in */
+                size: 70mm 20mm; 
                 margin: 0 !important;
               }
               body { margin: 0 !important; }
