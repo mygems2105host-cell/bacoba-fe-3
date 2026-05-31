@@ -89,6 +89,23 @@ export interface SearchedProductsApiResponse {
   };
 }
 
+export interface GetProductByIdApiResponse {
+  success: boolean;
+  message: string;
+  data: Product; // Trả về 1 sản phẩm duy nhất, không phải là Product[]
+}
+
+export const getProductById = async (id: string) => {
+  try {
+    // Gọi đến đúng endpoint /products/{id} như trong Postman/Thunder Client của bạn
+    const response = await apiClient.get<GetProductByIdApiResponse>(`/products/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching product with ID ${id}:`, error);
+    throw error;
+  }
+};
+
 export const getProducts = async (params?: GetProductsParams) => {
   try {
     const response = await apiClient.get<ProductsApiResponse>("/products", {
