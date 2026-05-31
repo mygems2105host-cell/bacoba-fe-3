@@ -148,7 +148,7 @@ export function EditReceivedNote({
       reset({
         id: receivedNote.id,
         providerId: receivedNote.provider?.id?.toString() || "",
-        createdAt: new Date(receivedNote.createdAt).toISOString().slice(0, 16),
+        createdAt: inputDateTime,
         receivedProducts:
           receivedNote.receivedProducts?.map((p: any) => ({
             id: p.id,
