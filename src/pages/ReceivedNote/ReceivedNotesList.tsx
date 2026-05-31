@@ -618,6 +618,7 @@ function ReceivedNotesList() {
                                         >
                                           <EditReceivedNote
                                             receivedNote={note}
+                                            onSuccess={fetchNotes}
                                           />
                                         </div>
                                       </div>

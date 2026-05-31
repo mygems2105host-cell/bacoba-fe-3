@@ -58,7 +58,7 @@ const parseNumber = (val: string) => {
 const formSchema = z.object({
   id: z.coerce.string(), // Tự động biến number thành string
   providerId: z.coerce.string().min(1, "Vui lòng chọn nhà cung cấp"),
-  createdAt: z.string(),
+  createdAt: z.string().min(1, "Vui lòng chọn ngày giờ nhập"),
   receivedProducts: z
     .array(
       z.object({
@@ -135,6 +135,16 @@ export function EditReceivedNote({
   // Reset form khi dữ liệu receivedNote được truyền vào
   useEffect(() => {
     if (receivedNote) {
+      let inputDateTime = "";
+      if (receivedNote.createdAt) {
+        const dateObj = new Date(receivedNote.createdAt);
+        // Chuyển đổi sang múi giờ địa phương (Việt Nam) định dạng YYYY-MM-DDTHH:mm
+        const tzOffset = dateObj.getTimezoneOffset() * 60000;
+        const localISOTime = new Date(dateObj.getTime() - tzOffset)
+          .toISOString()
+          .slice(0, 16);
+        inputDateTime = localISOTime;
+      }
       reset({
         id: receivedNote.id,
         providerId: receivedNote.provider?.id?.toString() || "",
@@ -179,12 +189,19 @@ export function EditReceivedNote({
   const onSubmit = async (data: FormValues) => {
     try {
       setIsSubmitting(true);
+      // Chuyển đổi chuỗi "YYYY-MM-DDTHH:mm" từ input thành mã Timestamp số nguyên
+      const formattedCreatedAt = new Date(data.createdAt).getTime();
 
+      if (isNaN(formattedCreatedAt)) {
+        toast.error("Ngày giờ nhập không hợp lệ");
+        return;
+      }
       // 2. Chuyển đổi dữ liệu từ Form về format API mong muốn
       const apiParams = {
         providerId: data.providerId,
         description: data.description || "",
         payedMoney: data.paidAmount,
+        createdAt: formattedCreatedAt,
         phoneNumber: "",
         debtMoney: totals.debt,
         total: totals.totalAmount,
