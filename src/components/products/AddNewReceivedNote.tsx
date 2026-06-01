@@ -12,6 +12,7 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
 import {
   Table,
@@ -34,6 +35,7 @@ import {
   createProviders,
   createReceivedNote,
   getProviders,
+  getSearchedProducts,
   type CreateReceivedNoteParams,
 } from "@/services/api";
 import { toast } from "sonner";
@@ -89,7 +91,12 @@ export function AddNewReceivedNote({
 }: AddNewReceivedNoteProps) {
   const [open, setOpen] = useState(false);
   const [providers, setProviders] = useState<Provider[]>([]);
-
+  // Thêm vào ngay dưới phần khai báo state `providers` hiện tại:
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
   const fetchData = async () => {
     try {
       const [provRes] = await Promise.all([
@@ -124,7 +131,7 @@ export function AddNewReceivedNote({
   });
 
   const { control, handleSubmit, setValue, getValues } = form;
-  const { fields, remove, replace } = useFieldArray({
+  const { fields, remove, replace, append } = useFieldArray({
     control,
     name: "receivedProducts",
   });
@@ -157,11 +164,72 @@ export function AddNewReceivedNote({
     }, 0);
     const totalAmount = subTotal - (watchedTotalDiscount || 0);
     const debt = totalAmount - (watchedPaidAmount || 0);
-    return { subTotal, totalAmount,totalQuantity, debt };
+    return { subTotal, totalAmount, totalQuantity, debt };
   }, [watchedProducts, watchedTotalDiscount, watchedPaidAmount]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") e.preventDefault();
+  };
+
+  // Thêm useEffect xử lý Debounce Search ngay dưới logic fetchData/useEffect hiện tại:
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      const term = searchTerm.toLowerCase().trim();
+
+      if (!term) {
+        setSearchResults([]);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const response = await getSearchedProducts({
+          search: term.toUpperCase(),
+        });
+
+        if (response.success) {
+          // Flatten variants giống cấu trúc dữ liệu bên file SalePOS
+          const results = response.data.flatMap((parent: any) =>
+            parent.variants && Array.isArray(parent.variants)
+              ? parent.variants
+              : [parent]
+          );
+          setSearchResults(results);
+        }
+      } catch (error) {
+        console.error("Lỗi search API:", error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
+
+  // Hàm xử lý khi chọn sản phẩm từ danh sách tìm kiếm đổ xuống để đẩy vào React Hook Form
+  const handleAddProductFromSearch = (product: any) => {
+    const currentProducts = getValues("receivedProducts") || [];
+    const existingIdx = currentProducts.findIndex((p) => p.id === product.id);
+
+    if (existingIdx > -1) {
+      // Nếu sản phẩm đã tồn tại trong danh sách, tăng số lượng lên 1
+      const currentQty = currentProducts[existingIdx].addQuantity || 0;
+      setValue(`receivedProducts.${existingIdx}.addQuantity`, currentQty + 1);
+    } else {
+      // SỬA TẠI ĐÂY: Sử dụng append thay vì replace để giữ vững state của Field Array
+      append({
+        id: product.id,
+        name: product.name,
+        addQuantity: 1,
+        price: product.initialPrice || product.salePrice || 0,
+        discount: 0,
+      });
+    }
+
+    // Reset thanh tìm kiếm
+    setSearchTerm("");
+    setSearchResults([]);
+    searchInputRef.current?.focus();
   };
 
   const onSaveDraft = async () => {
@@ -301,14 +369,62 @@ export function AddNewReceivedNote({
           >
             {/* LEFT SIDE: Danh sách sản phẩm */}
             <div className="flex-[2] flex flex-col min-w-0 border-r border-border bg-muted/10 h-full">
-              <div className="p-4 bg-background border-b border-border shrink-0">
+              {/* LEFT SIDE: Danh sách sản phẩm */}
+
+              <div className="p-4 bg-background border-b border-border shrink-0 relative z-50">
                 <div className="relative">
                   <Input
-                    placeholder="Tìm hàng hóa ..."
+                    ref={searchInputRef}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() =>
+                      setTimeout(() => setIsSearchFocused(false), 300)
+                    } // Tăng lên 300ms cho an toàn
+                    placeholder="Tìm hàng hóa (Mã, tên, barcode)..."
                     className="pl-10 bg-background border-input focus-visible:ring-primary"
                   />
                   <Plus className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 </div>
+
+                {/* DROPDOWN KẾT QUẢ TÌM KIẾM */}
+                {isSearching ? (
+                  <div className="absolute top-full left-4 right-4 bg-card border border-border p-3 shadow-lg z-[100] text-sm text-muted-foreground">
+                    Đang tìm kiếm sản phẩm...
+                  </div>
+                ) : (
+                  // SỬA ĐIỀU KIỆN: Chỉ cần có kết quả và ô input đang có chữ/đang focus là hiện
+                  isSearchFocused &&
+                  searchResults.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border shadow-2xl z-[100] max-h-60 overflow-y-auto rounded-md custom-scrollbar">
+                      {searchResults.map((p) => (
+                        <div
+                          key={p.id}
+                          className="p-3 border-b border-border flex justify-between items-center hover:bg-primary/5 cursor-pointer"
+                          onMouseDown={(e) => {
+                            e.preventDefault(); // Ngăn ô input bị mất focus (blur) trước khi nhận click
+                            handleAddProductFromSearch(p);
+                          }}
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold">{p.name}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              Mã: {p.id} | Tồn: {p.quantity ?? 0}
+                            </span>
+                          </div>
+                          <span className="text-sm font-black text-primary">
+                            {(
+                              p.initialPrice ||
+                              p.salePrice ||
+                              0
+                            ).toLocaleString()}{" "}
+                            đ
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                )}
               </div>
 
               <div className="flex-1 min-h-0">
@@ -355,7 +471,7 @@ export function AddNewReceivedNote({
                                   {index + 1}
                                 </TableCell>
                                 <TableCell className="font-bold text-primary">
-                                  {row?.id.slice(0, 8)}
+                                  {row?.id}
                                 </TableCell>
                                 <TableCell className="font-medium">
                                   {field.name}
@@ -447,9 +563,12 @@ export function AddNewReceivedNote({
                                 placeholder="Chọn hoặc tìm kiếm..."
                               />
                             </FormControl>
+                            <FormMessage />
                           </FormItem>
+                          
                         )}
                       />
+                      
                       <FormField
                         control={control}
                         name="createdAt"
