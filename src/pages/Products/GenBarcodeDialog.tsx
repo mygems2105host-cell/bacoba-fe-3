@@ -332,8 +332,19 @@ export function GenBarcodeDialog({ selectedProducts }: GenBarcodeDialogProps) {
               line-height: 1;
             }
 
-            .sku { font-size: 6px; font-weight: 600; }
-            .price { font-size: 8px; font-weight: 900; margin-top: 1px; }
+            .sku { 
+              font-size: 8px; 
+              font-weight: 800; 
+              font-family: monospace; /* Font đơn cách giúp mã SKU rõ, dễ đọc hơn */
+             
+              width: 100%;
+            }
+            .price { 
+              font-size: 11px; 
+              font-weight: 950; /* Tối đa độ đậm để làm nổi bật giá */
+              margin-top: 0.5px; 
+              letter-spacing: -0.2px; /* Thu hẹp khoảng cách chữ một chút để không bị tràn dòng */
+            }
 
             @media print {
               @page {
