@@ -36,8 +36,12 @@ import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Trash2, Save, Edit3, PackageOpen } from "lucide-react";
-import type { Provider } from "@/types";
-import { editReceivedNote, getProviders } from "@/services/api";
+import type { Product, Provider } from "@/types";
+import {
+  editReceivedNote,
+  getProviders,
+  getSearchedProducts,
+} from "@/services/api";
 import { toast } from "sonner";
 
 interface EditReceivedNoteProps {
@@ -85,6 +89,10 @@ export function EditReceivedNote({
   const [providers, setProviders] = useState<Provider[]>([]);
   const [, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false); // Quản lý trạng thái đóng mở Dialog
+  const [searchProductQuery, setSearchProductQuery] = useState("");
+  const [searchProducts, setSearchProducts] = useState<Product[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
   const fetchData = async () => {
     try {
       const [provRes] = await Promise.all([
@@ -127,7 +135,7 @@ export function EditReceivedNote({
     reset,
     formState: {},
   } = form;
-  const { fields, remove } = useFieldArray({
+  const { fields, remove, append } = useFieldArray({
     control,
     name: "receivedProducts",
   });
@@ -189,7 +197,7 @@ export function EditReceivedNote({
   const onSubmit = async (data: FormValues) => {
     try {
       setIsSubmitting(true);
-      
+
       // SỬA TẠI ĐÂY: Chuyển đổi thành chuỗi ISO String thay vì lấy .getTime() số nguyên
       const formattedCreatedAt = new Date(data.createdAt).toISOString();
 
@@ -197,7 +205,7 @@ export function EditReceivedNote({
         toast.error("Ngày giờ nhập không hợp lệ");
         return;
       }
-      
+
       // 2. Chuyển đổi dữ liệu từ Form về format API mong muốn
       const apiParams = {
         providerId: data.providerId,
@@ -208,12 +216,12 @@ export function EditReceivedNote({
         debtMoney: totals.debt,
         total: totals.totalAmount,
         discount: data.totalDiscount,
-        status: "confirm" as const, 
+        status: "confirm" as const,
         receivedProducts: data.receivedProducts.map((p) => ({
           productId: p.productId,
           addQuantity: p.addQuantity,
           discount: p.discount,
-          description: "", 
+          description: "",
           total: (p.price - p.discount) * p.addQuantity,
         })),
       };
@@ -223,8 +231,8 @@ export function EditReceivedNote({
 
       if (response.success) {
         toast.success("Cập nhật phiếu nhập thành công");
-        setOpen(false); 
-        if (onSuccess) onSuccess(); 
+        setOpen(false);
+        if (onSuccess) onSuccess();
       } else {
         toast.error(response.message || "Có lỗi xảy ra khi cập nhật");
       }
@@ -234,6 +242,67 @@ export function EditReceivedNote({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  useEffect(() => {
+    if (!searchProductQuery.trim()) {
+      setSearchProducts([]);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        setIsSearching(true);
+        // Giả định API getProducts nhận param search giống getProviders
+        const res = await getSearchedProducts({
+          search: searchProductQuery.toUpperCase(),
+        });
+
+        if (res.success) {
+          // Flatten variants nếu cần thiết (tùy cấu trúc dữ liệu BE trả về)
+          const results = res.data.flatMap((parent) =>
+            parent.variants && Array.isArray(parent.variants)
+              ? parent.variants
+              : [parent]
+          );
+          setSearchProducts(results);
+        }
+      } catch (error) {
+        console.error("Lỗi khi tìm sản phẩm:", error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300); // Chờ 300ms sau khi dừng gõ mới gọi API
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchProductQuery]);
+
+  // Hàm thêm sản phẩm vào danh sách phiếu nhập
+  const handleSelectProduct = (product: Product) => {
+    // Kiểm tra xem sản phẩm đã tồn tại trong danh sách chưa
+    const existingIndex = (watchedProducts || []).findIndex(
+      (p) => p?.productId === product.id.toString()
+    );
+
+    if (existingIndex !== -1) {
+      // Nếu đã tồn tại, tăng số lượng addQuantity thêm 1
+      const currentQty = watchedProducts[existingIndex]?.addQuantity || 0;
+      setValue(`receivedProducts.${existingIndex}.addQuantity`, currentQty + 1);
+    } else {
+      // Nếu chưa có, append một dòng mới vào form array
+      append({
+        id: "", // Dòng mới chưa có id từ db, gán rỗng để backend tự sinh
+        productId: product.id.toString(),
+        productName: product.name,
+        addQuantity: 1,
+        price: product.initialPrice || 0, // Lấy giá nhập mặc định của sản phẩm (nếu có)
+        discount: 0,
+      });
+    }
+
+    // Reset thanh tìm kiếm sau khi chọn
+    setSearchProductQuery("");
+    setSearchProducts([]);
   };
 
   return (
@@ -270,8 +339,51 @@ export function EditReceivedNote({
             {/* LEFT SIDE: Danh sách sản phẩm */}
             <div className="flex-[2] flex flex-col min-w-0 border-r border-border bg-muted/5 h-full">
               <div className="flex-1 min-h-0">
-                <ScrollArea className="h-full w-full">
+              <div className="relative z-20">
+                      <Input
+                        placeholder="Gõ tên hoặc mã sản phẩm để thêm vào phiếu..."
+                        value={searchProductQuery}
+                        onChange={(e) => setSearchProductQuery(e.target.value)}
+                        className="bg-card w-full h-10 border-primary/20 focus-visible:ring-primary shadow-sm"
+                      />
+
+                      {/* Kết quả tìm kiếm Dropdown hiển thị đè lên nội dung dưới */}
+                      {searchProducts.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-xl max-h-[280px] overflow-y-auto z-30 divide-y divide-border">
+                          {searchProducts.map((prod) => (
+                            <div
+                              key={prod.id}
+                              className="flex justify-between items-center p-3 hover:bg-muted/80 cursor-pointer text-sm transition-colors"
+                              onClick={() => handleSelectProduct(prod)}
+                            >
+                              <div>
+                                <p className="font-bold text-foreground">
+                                  {prod.name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Mã sản phẩm: {prod.id}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-full">
+                                  Giá nhập:{" "}
+                                  {formatDisplay(prod.initialPrice || 0)} đ
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {isSearching && (
+                        <div className="absolute top-full left-0 right-0 mt-1 p-3 text-center text-xs text-muted-foreground bg-card border border-border rounded-md shadow-lg">
+                          Đang truy vấn dữ liệu sản phẩm...
+                        </div>
+                      )}
+                    </div>
+                <ScrollArea className="h-9/10 w-full">
                   <div className="p-4">
+                    
                     <div className="rounded-md border border-border bg-card overflow-hidden">
                       <Table>
                         <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
