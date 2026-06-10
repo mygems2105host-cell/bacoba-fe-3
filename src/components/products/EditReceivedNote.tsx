@@ -189,29 +189,31 @@ export function EditReceivedNote({
   const onSubmit = async (data: FormValues) => {
     try {
       setIsSubmitting(true);
-      // Chuyển đổi chuỗi "YYYY-MM-DDTHH:mm" từ input thành mã Timestamp số nguyên
-      const formattedCreatedAt = new Date(data.createdAt).getTime();
+      
+      // SỬA TẠI ĐÂY: Chuyển đổi thành chuỗi ISO String thay vì lấy .getTime() số nguyên
+      const formattedCreatedAt = new Date(data.createdAt).toISOString();
 
-      if (isNaN(formattedCreatedAt)) {
+      if (!data.createdAt || formattedCreatedAt === "Invalid Date") {
         toast.error("Ngày giờ nhập không hợp lệ");
         return;
       }
+      
       // 2. Chuyển đổi dữ liệu từ Form về format API mong muốn
       const apiParams = {
         providerId: data.providerId,
         description: data.description || "",
         payedMoney: data.paidAmount,
-        createdAt: formattedCreatedAt,
+        createdAt: formattedCreatedAt, // Bây giờ trường này đã là kiểu string chuẩn xác
         phoneNumber: "",
         debtMoney: totals.debt,
         total: totals.totalAmount,
         discount: data.totalDiscount,
-        status: "confirm" as const, // Hoặc giữ nguyên status cũ của phiếu
+        status: "confirm" as const, 
         receivedProducts: data.receivedProducts.map((p) => ({
           productId: p.productId,
           addQuantity: p.addQuantity,
           discount: p.discount,
-          description: "", // Hoặc map từ field nếu có
+          description: "", 
           total: (p.price - p.discount) * p.addQuantity,
         })),
       };
@@ -221,8 +223,8 @@ export function EditReceivedNote({
 
       if (response.success) {
         toast.success("Cập nhật phiếu nhập thành công");
-        setOpen(false); // Đóng dialog
-        if (onSuccess) onSuccess(); // Refresh danh sách ở trang cha
+        setOpen(false); 
+        if (onSuccess) onSuccess(); 
       } else {
         toast.error(response.message || "Có lỗi xảy ra khi cập nhật");
       }

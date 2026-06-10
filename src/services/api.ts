@@ -401,6 +401,7 @@ export interface CreateReceivedNoteParams {
   debtMoney: number;
   total: number;
   status: "confirm" | "draft" | "cancelled";
+  createdAt?: string;
   receivedProducts: ReceivedProductItem[];
 }
 

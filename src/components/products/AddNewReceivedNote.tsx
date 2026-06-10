@@ -250,6 +250,7 @@ export function AddNewReceivedNote({
         debtMoney: totals.debt,
         total: totals.totalAmount,
         status: "draft",
+        createdAt: data.createdAt ? new Date(data.createdAt).toISOString() : new Date().toISOString(), // SỬA TẠI ĐÂY: Truyền dữ liệu thời gian (Format sang ISO String nếu Backend cần)
         receivedProducts: data.receivedProducts.map((p) => ({
           productId: p.id,
           addQuantity: p.addQuantity,
@@ -264,8 +265,7 @@ export function AddNewReceivedNote({
       if (onSuccess) {
         onSuccess();
       }
-      form.reset(); // Xóa trắng form sau khi tạo thành công
-      // Thêm logic đóng Dialog hoặc điều hướng nếu cần
+      form.reset(); 
       setOpen(false);
     } catch (error) {
       toast.error("Không thể lưu nháp");
@@ -276,21 +276,21 @@ export function AddNewReceivedNote({
     try {
       // 1. Mapping dữ liệu từ form sang params API
       const apiParams: CreateReceivedNoteParams = {
-        providerId: data.providerId, // Chuyển từ string sang number nếu backend yêu cầu
-        phoneNumber: "", // Bạn có thể lấy từ object provider nếu có dữ liệu NCC
+        providerId: data.providerId, 
+        phoneNumber: "", 
         description: data.description || "",
         discount: data.totalDiscount,
         payedMoney: data.paidAmount,
-        debtMoney: totals.debt, // Giá trị này đã được tính: (Total - Discount) - Paid
-        total: totals.totalAmount, // Giá trị này đã được tính: Subtotal - Discount
+        debtMoney: totals.debt, 
+        total: totals.totalAmount, 
 
         status: "confirm",
+        createdAt: data.createdAt ? new Date(data.createdAt).toISOString() : new Date().toISOString(), // SỬA TẠI ĐÂY: Truyền dữ liệu thời gian sang API
         receivedProducts: data.receivedProducts.map((p) => ({
           productId: p.id,
           addQuantity: p.addQuantity,
           discount: p.discount,
           description: p.name,
-          // Đảm bảo tính toán đúng cho từng dòng sản phẩm
           total: (p.price - p.discount) * p.addQuantity,
         })),
       };
@@ -303,8 +303,7 @@ export function AddNewReceivedNote({
         if (onSuccess) {
           onSuccess();
         }
-        form.reset(); // Xóa trắng form sau khi tạo thành công
-        // Thêm logic đóng Dialog hoặc điều hướng nếu cần
+        form.reset(); 
         setOpen(false);
       }
     } catch (error) {
