@@ -441,17 +441,17 @@ export default function SalePOS() {
   };
 
   // --- BARCODE ---
-  const handleBarcodeScan = (code: string) => {
-    const cleanCode = code.trim();
-    if (!cleanCode) return;
+  // const handleBarcodeScan = (code: string) => {
+  //   const cleanCode = code.trim();
+  //   if (!cleanCode) return;
 
-    // Đưa mã vào ô search
-    setSearchTerm(cleanCode);
-    setIsSearchFocused(true);
+  //   // Đưa mã vào ô search
+  //   setSearchTerm(cleanCode);
+  //   setIsSearchFocused(true);
 
-    // Đảm bảo con trỏ nhảy vào ô search để người dùng có thể xóa hoặc gõ thêm
-    searchInputRef.current?.focus();
-  };
+  //   // Đảm bảo con trỏ nhảy vào ô search để người dùng có thể xóa hoặc gõ thêm
+  //   searchInputRef.current?.focus();
+  // };
 
   // 2. useEffect lắng nghe máy quét (Sửa lại dependencies để tránh lag)
   // 2. useEffect lắng nghe máy quét (Tối ưu hóa riêng cho máy quét độ trễ cao Mexxen)
