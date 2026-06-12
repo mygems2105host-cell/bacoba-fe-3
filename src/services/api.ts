@@ -400,7 +400,7 @@ export interface CreateReceivedNoteParams {
   payedMoney: number;
   debtMoney: number;
   total: number;
-  status: "confirm" | "draft" | "cancelled";
+  status: "confirm" | "draft" | "cancelled"|"returned";
   createdAt?: string;
   receivedProducts: ReceivedProductItem[];
 }
@@ -424,6 +424,19 @@ export const createReceivedNote = async (params: CreateReceivedNoteParams) => {
   try {
     const response = await apiClient.post<ReceivedNotesApiResponse>(
       "/received-notes",
+      params
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error creating received note:", error);
+    throw error;
+  }
+};
+
+export const createReturnReceivedNote = async (params: CreateReceivedNoteParams) => {
+  try {
+    const response = await apiClient.post<ReceivedNotesApiResponse>(
+      "/received-notes/create-return",
       params
     );
     return response.data;

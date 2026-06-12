@@ -53,6 +53,7 @@ import {
 import { toast } from "sonner";
 import { BarcodeDialog } from "./BarcodeDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CreateReturnReceivedNote } from "@/components/products/CreateReturnReceivedNote";
 const ReceivedNotesSkeleton = ({ rows = 5 }: { rows?: number }) => {
   return (
     <>
@@ -97,6 +98,7 @@ function ReceivedNotesList() {
     { id: "confirm", name: "Đã nhập" },
     { id: "draft", name: "Nháp" },
     { id: "cancelled", name: "Hủy" },
+    { id: "returned", name: "Trả hàng" },
   ];
 
   // 1. Khai báo state cho API
@@ -253,6 +255,8 @@ function ReceivedNotesList() {
         return "text-blue-600 bg-blue-50 px-2 py-1 rounded-full text-xs font-semibold";
       case "cancelled":
         return "text-red-600 bg-red-50 px-2 py-1 rounded-full text-xs font-semibold";
+      case "returned":
+        return "text-foreground bg-secondary px-2 py-1 rounded-full text-xs font-semibold";
       default:
         return "";
     }
@@ -287,6 +291,7 @@ function ReceivedNotesList() {
           {/* <Button variant={"outline"}>
             Nhập hàng <ArrowRight className="ml-2 h-4 w-4" />{" "}
           </Button> */}
+          <CreateReturnReceivedNote onSuccess={fetchNotes}/>
         </div>
       </div>
 
