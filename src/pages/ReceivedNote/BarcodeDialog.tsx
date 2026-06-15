@@ -279,7 +279,7 @@ export function BarcodeDialog({ note }: BarcodeDialogProps) {
               text-transform: uppercase; 
               text-align: left;
               width: 100%;
-              max-height: 11mm;
+              max-height: 20mm;
               display: -webkit-box;
               -webkit-line-clamp: 4;
               -webkit-box-orient: vertical;
