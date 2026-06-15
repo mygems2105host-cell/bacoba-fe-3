@@ -54,6 +54,7 @@ import { toast } from "sonner";
 import { BarcodeDialog } from "./BarcodeDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreateReturnReceivedNote } from "@/components/products/CreateReturnReceivedNote";
+import { getPaginationRange } from "@/lib/pagination";
 const ReceivedNotesSkeleton = ({ rows = 5 }: { rows?: number }) => {
   return (
     <>
@@ -291,7 +292,7 @@ function ReceivedNotesList() {
           {/* <Button variant={"outline"}>
             Nhập hàng <ArrowRight className="ml-2 h-4 w-4" />{" "}
           </Button> */}
-          <CreateReturnReceivedNote onSuccess={fetchNotes}/>
+          <CreateReturnReceivedNote onSuccess={fetchNotes} />
         </div>
       </div>
 
@@ -401,7 +402,6 @@ function ReceivedNotesList() {
                           day: "2-digit",
                           month: "2-digit",
                           year: "numeric",
-                          
                         })}
                       </TableCell>
                       <TableCell className="text-right">
@@ -643,59 +643,118 @@ function ReceivedNotesList() {
           </TableBody>
         </Table>
 
-        <Pagination className="mt-4">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                className={
-                  meta.currentPage === 1
-                    ? "pointer-events-none opacity-50"
-                    : "cursor-pointer"
-                }
-                onClick={() =>
-                  setMeta((prev) => ({
-                    ...prev,
-                    currentPage: Math.max(1, prev.currentPage - 1),
-                  }))
-                }
-              />
-            </PaginationItem>
+        {/* THAY THẾ PHẦN <Pagination> CŨ BẰNG ĐOẠN ĐÃ ĐƯỢC TỐI ƯU DƯỚI ĐÂY */}
+        <div className="py-4 flex flex-wrap items-center justify-between gap-4 border-t border-border mt-4">
+          <Pagination className="w-auto mx-0">
+            <PaginationContent>
+              {/* Nút Quay lại */}
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() =>
+                    setMeta((prev) => ({
+                      ...prev,
+                      currentPage: Math.max(1, prev.currentPage - 1),
+                    }))
+                  }
+                  className={
+                    meta.currentPage === 1
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer select-none"
+                  }
+                />
+              </PaginationItem>
 
-            {meta.totalPages > 0 &&
-              [...Array(meta.totalPages)].map((_, i) => (
-                <PaginationItem key={i}>
-                  <PaginationLink
-                    isActive={meta.currentPage === i + 1}
-                    onClick={() =>
-                      setMeta((prev) => ({ ...prev, currentPage: i + 1 }))
+              {/* Render danh sách trang rút gọn bằng hàm utils chung */}
+              {meta.totalPages > 0 &&
+                getPaginationRange(meta.currentPage, meta.totalPages).map(
+                  (page, index) => {
+                    if (page === "...") {
+                      return (
+                        <PaginationItem key={`dots-${index}`}>
+                          <span className="px-3 py-2 text-sm text-muted-foreground select-none">
+                            ...
+                          </span>
+                        </PaginationItem>
+                      );
                     }
-                    className="cursor-pointer"
-                  >
-                    {i + 1}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
 
-            <PaginationItem>
-              <PaginationNext
-                className={
-                  meta.currentPage === meta.totalPages
-                    ? "pointer-events-none opacity-50"
-                    : "cursor-pointer"
+                    return (
+                      <PaginationItem key={`page-${page}`}>
+                        <PaginationLink
+                          isActive={meta.currentPage === page}
+                          onClick={() =>
+                            setMeta((prev) => ({
+                              ...prev,
+                              currentPage: page as number,
+                            }))
+                          }
+                          className="cursor-pointer select-none"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  }
+                )}
+
+              {/* Nút Tiếp theo */}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() =>
+                    setMeta((prev) => ({
+                      ...prev,
+                      currentPage: Math.min(
+                        prev.totalPages,
+                        prev.currentPage + 1
+                      ),
+                    }))
+                  }
+                  className={
+                    meta.currentPage === meta.totalPages
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer select-none"
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+
+          {/* Phần nhập số trang cần nhảy đến */}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Đi đến trang</span>
+            <Input
+              type="number"
+              min={1}
+              max={meta.totalPages}
+              defaultValue={meta.currentPage}
+              key={meta.currentPage} // Đồng bộ lại giá trị input khi thay đổi trang từ bên ngoài
+              className="w-16 h-9 text-center focus-visible:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const targetPage = parseInt(
+                    (e.target as HTMLInputElement).value,
+                    10
+                  );
+                  if (targetPage >= 1 && targetPage <= meta.totalPages) {
+                    setMeta((prev) => ({ ...prev, currentPage: targetPage }));
+                  } else {
+                    (e.target as HTMLInputElement).value =
+                      meta.currentPage.toString();
+                  }
                 }
-                onClick={() =>
-                  setMeta((prev) => ({
-                    ...prev,
-                    currentPage: Math.min(
-                      prev.totalPages,
-                      prev.currentPage + 1
-                    ),
-                  }))
+              }}
+              onBlur={(e) => {
+                const targetPage = parseInt(e.target.value, 10);
+                if (targetPage >= 1 && targetPage <= meta.totalPages) {
+                  setMeta((prev) => ({ ...prev, currentPage: targetPage }));
+                } else {
+                  e.target.value = meta.currentPage.toString();
                 }
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+              }}
+            />
+            <span>/ {meta.totalPages}</span>
+          </div>
+        </div>
       </div>
     </div>
   );

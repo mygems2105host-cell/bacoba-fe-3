@@ -47,7 +47,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PrintBillDialog } from "../Products/PrintBillDialog";
-
+import { getPaginationRange } from "@/lib/pagination";
 
 const TableSkeleton = () => {
   return (
@@ -55,22 +55,28 @@ const TableSkeleton = () => {
       {[...Array(10)].map((_, i) => (
         <TableRow key={i}>
           {/* 1. Nút mở rộng */}
-          <TableCell><Skeleton className="h-4 w-4" /></TableCell>
-          
+          <TableCell>
+            <Skeleton className="h-4 w-4" />
+          </TableCell>
+
           {/* 2. Checkbox */}
-          <TableCell><Skeleton className="h-4 w-4" /></TableCell>
-          
+          <TableCell>
+            <Skeleton className="h-4 w-4" />
+          </TableCell>
+
           {/* 3. Mã hóa đơn */}
           <TableCell>
             <div className="flex flex-col gap-1">
-               <Skeleton className="h-5 w-20" />
-               {/* Giả lập dòng "Đổi từ..." nếu cần */}
+              <Skeleton className="h-5 w-20" />
+              {/* Giả lập dòng "Đổi từ..." nếu cần */}
             </div>
           </TableCell>
-          
+
           {/* 4. Thời gian */}
-          <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-          
+          <TableCell>
+            <Skeleton className="h-5 w-32" />
+          </TableCell>
+
           {/* 5. Khách hàng */}
           <TableCell>
             <div className="space-y-2">
@@ -78,17 +84,17 @@ const TableSkeleton = () => {
               <Skeleton className="h-3 w-20" />
             </div>
           </TableCell>
-          
+
           {/* 6. Tổng tiền (Cần căn phải cho khớp TableHead) */}
           <TableCell className="text-right">
             <Skeleton className="h-5 w-20 ml-auto" />
           </TableCell>
-          
+
           {/* 7. Trạng thái (Căn giữa) */}
           <TableCell>
             <Skeleton className="h-6 w-24 mx-auto rounded-full" />
           </TableCell>
-          
+
           {/* 8. Thao tác (Căn phải) */}
           <TableCell className="text-right pr-6">
             <Skeleton className="h-8 w-8 ml-auto rounded-md" />
@@ -317,91 +323,92 @@ function BillsList() {
             <TableBody>
               {loading ? (
                 <TableSkeleton />
-              ) :(bills.map((bill: any) => {
-                const productIds =
-                  bill.billProducts?.map((p: any) => p.id) || [];
-                const isBillSelected = selectedRows.includes(bill.id);
-                const isExpanded = expandedRows.includes(bill.id);
+              ) : (
+                bills.map((bill: any) => {
+                  const productIds =
+                    bill.billProducts?.map((p: any) => p.id) || [];
+                  const isBillSelected = selectedRows.includes(bill.id);
+                  const isExpanded = expandedRows.includes(bill.id);
 
-                return (
-                  <React.Fragment key={bill.id}>
-                    <TableRow
-                      data-state={isBillSelected && "selected"}
-                      className={
-                        isExpanded
-                          ? "border-b-0 bg-muted/30"
-                          : "hover:bg-muted/30"
-                      }
-                    >
-                      <TableCell>
-                        <button
-                          onClick={() => toggleRowExpand(bill.id)}
-                          className="p-1 hover:text-primary transition-colors"
-                        >
-                          {isExpanded ? (
-                            <ChevronDown size={16} />
-                          ) : (
-                            <ChevronRight size={16} />
-                          )}
-                        </button>
-                      </TableCell>
-                      <TableCell>
-                        <Checkbox
-                          checked={isBillSelected}
-                          onCheckedChange={() =>
-                            handleSelectRow(bill.id, productIds)
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-foreground">
-                            {bill.id}
-                          </span>
-                          {bill.exchange && (
-                            <span className="text-[10px] text-primary flex items-center gap-1 italic">
-                              <ArrowRightLeft size={10} />
-                              Đổi từ {bill.exchange.id}
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(bill.createdAt).toLocaleString("vi-VN", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium text-foreground">
-                            {bill.customerName || "Khách lẻ"}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {bill.phoneNumber}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell
-                        className={`text-right font-bold ${
-                          bill.status === "returned"
-                            ? "text-muted-foreground line-through"
-                            : "text-primary"
-                        }`}
+                  return (
+                    <React.Fragment key={bill.id}>
+                      <TableRow
+                        data-state={isBillSelected && "selected"}
+                        className={
+                          isExpanded
+                            ? "border-b-0 bg-muted/30"
+                            : "hover:bg-muted/30"
+                        }
                       >
-                        {bill.total.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className={getStatusStyle(bill.status)}>
-                          {statusOptions.find((o) => o.id === bill.status)
-                            ?.name || bill.status}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {/* <div className="flex justify-end gap-2 pr-2">
+                        <TableCell>
+                          <button
+                            onClick={() => toggleRowExpand(bill.id)}
+                            className="p-1 hover:text-primary transition-colors"
+                          >
+                            {isExpanded ? (
+                              <ChevronDown size={16} />
+                            ) : (
+                              <ChevronRight size={16} />
+                            )}
+                          </button>
+                        </TableCell>
+                        <TableCell>
+                          <Checkbox
+                            checked={isBillSelected}
+                            onCheckedChange={() =>
+                              handleSelectRow(bill.id, productIds)
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-foreground">
+                              {bill.id}
+                            </span>
+                            {bill.exchange && (
+                              <span className="text-[10px] text-primary flex items-center gap-1 italic">
+                                <ArrowRightLeft size={10} />
+                                Đổi từ {bill.exchange.id}
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(bill.createdAt).toLocaleString("vi-VN", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-foreground">
+                              {bill.customerName || "Khách lẻ"}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {bill.phoneNumber}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell
+                          className={`text-right font-bold ${
+                            bill.status === "returned"
+                              ? "text-muted-foreground line-through"
+                              : "text-primary"
+                          }`}
+                        >
+                          {bill.total.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className={getStatusStyle(bill.status)}>
+                            {statusOptions.find((o) => o.id === bill.status)
+                              ?.name || bill.status}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {/* <div className="flex justify-end gap-2 pr-2">
                           {(bill.status === "active" || bill.status === "completed") && (
                             <>
                               <Button
@@ -423,131 +430,133 @@ function BillsList() {
                             </>
                           )}
                         </div> */}
-                      </TableCell>
-                    </TableRow>
+                        </TableCell>
+                      </TableRow>
 
-                    {/* DETAILS EXPANDED */}
-                    {isExpanded && (
-                      <TableRow className="bg-primary/5 hover:bg-primary/5 border-b-0 border-l-4 border-primary">
-                        <TableCell colSpan={8} className="p-6">
-                          <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-top-2 duration-200">
-                            <div className="flex items-center justify-between border-b border-border pb-4">
-                              <h3 className="text-xl font-bold text-foreground">
-                                Chi tiết hóa đơn{" "}
-                                <span className="text-primary">{bill.id}</span>
-                                {bill.status === "returned" && (
-                                  <span className="ml-3 text-sm font-normal text-destructive italic">
-                                    (Đã thực hiện trả hàng/đổi hàng)
+                      {/* DETAILS EXPANDED */}
+                      {isExpanded && (
+                        <TableRow className="bg-primary/5 hover:bg-primary/5 border-b-0 border-l-4 border-primary">
+                          <TableCell colSpan={8} className="p-6">
+                            <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-top-2 duration-200">
+                              <div className="flex items-center justify-between border-b border-border pb-4">
+                                <h3 className="text-xl font-bold text-foreground">
+                                  Chi tiết hóa đơn{" "}
+                                  <span className="text-primary">
+                                    {bill.id}
                                   </span>
-                                )}
-                              </h3>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-x-20 gap-y-2 text-sm">
-                              <div className="flex justify-between border-b border-border/50 py-1">
-                                <span className="text-muted-foreground">
-                                  Tên hóa đơn:
-                                </span>
-                                <span className="text-foreground">
-                                  {bill.name || "N/A"}
-                                </span>
+                                  {bill.status === "returned" && (
+                                    <span className="ml-3 text-sm font-normal text-destructive italic">
+                                      (Đã thực hiện trả hàng/đổi hàng)
+                                    </span>
+                                  )}
+                                </h3>
                               </div>
-                              <div className="flex justify-between border-b border-border/50 py-1">
-                                <span className="text-muted-foreground">
-                                  Khách hàng:
-                                </span>
-                                <span className="text-primary font-medium">
-                                  {bill.customerName}
-                                </span>
-                              </div>
-                            </div>
 
-                            <div className="mt-4 rounded-md overflow-hidden border border-border bg-background">
-                              <Table>
-                                <TableHeader className="bg-muted/50">
-                                  <TableRow>
-                                    <TableHead className="text-foreground">
-                                      Mã hàng
-                                    </TableHead>
-                                    <TableHead className="text-foreground">
-                                      Tên hàng
-                                    </TableHead>
-                                    <TableHead className="text-right text-foreground">
-                                      Số lượng
-                                    </TableHead>
-                                    <TableHead className="text-right text-foreground">
-                                      Đơn giá
-                                    </TableHead>
-                                    <TableHead className="text-right text-foreground">
-                                      Thành tiền
-                                    </TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {bill.billProducts?.map((item: any) => (
-                                    <TableRow
-                                      key={item.id}
-                                      className="hover:bg-muted/30 border-border"
-                                    >
-                                      <TableCell className="text-primary font-medium">
-                                        {item.productId}
+                              <div className="grid grid-cols-2 gap-x-20 gap-y-2 text-sm">
+                                <div className="flex justify-between border-b border-border/50 py-1">
+                                  <span className="text-muted-foreground">
+                                    Tên hóa đơn:
+                                  </span>
+                                  <span className="text-foreground">
+                                    {bill.name || "N/A"}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between border-b border-border/50 py-1">
+                                  <span className="text-muted-foreground">
+                                    Khách hàng:
+                                  </span>
+                                  <span className="text-primary font-medium">
+                                    {bill.customerName}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="mt-4 rounded-md overflow-hidden border border-border bg-background">
+                                <Table>
+                                  <TableHeader className="bg-muted/50">
+                                    <TableRow>
+                                      <TableHead className="text-foreground">
+                                        Mã hàng
+                                      </TableHead>
+                                      <TableHead className="text-foreground">
+                                        Tên hàng
+                                      </TableHead>
+                                      <TableHead className="text-right text-foreground">
+                                        Số lượng
+                                      </TableHead>
+                                      <TableHead className="text-right text-foreground">
+                                        Đơn giá
+                                      </TableHead>
+                                      <TableHead className="text-right text-foreground">
+                                        Thành tiền
+                                      </TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {bill.billProducts?.map((item: any) => (
+                                      <TableRow
+                                        key={item.id}
+                                        className="hover:bg-muted/30 border-border"
+                                      >
+                                        <TableCell className="text-primary font-medium">
+                                          {item.productId}
+                                        </TableCell>
+                                        <TableCell className="text-foreground">
+                                          {item.productName}
+                                        </TableCell>
+                                        <TableCell className="text-right text-foreground">
+                                          {item.quantity}
+                                        </TableCell>
+                                        <TableCell className="text-right text-foreground">
+                                          {item.salePrice.toLocaleString()}
+                                        </TableCell>
+                                        <TableCell className="text-right font-medium text-foreground">
+                                          {item.total.toLocaleString()}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+
+                                    {/* BILL SUMMARY */}
+                                    <TableRow className="bg-muted/20 font-medium border-t-2 border-border">
+                                      <TableCell colSpan={3}></TableCell>
+                                      <TableCell className="text-right text-muted-foreground">
+                                        Tổng tiền hàng:
                                       </TableCell>
-                                      <TableCell className="text-foreground">
-                                        {item.productName}
-                                      </TableCell>
-                                      <TableCell className="text-right text-foreground">
-                                        {item.quantity}
-                                      </TableCell>
-                                      <TableCell className="text-right text-foreground">
-                                        {item.salePrice.toLocaleString()}
-                                      </TableCell>
-                                      <TableCell className="text-right font-medium text-foreground">
-                                        {item.total.toLocaleString()}
+                                      <TableCell className="text-right font-bold text-foreground">
+                                        {(
+                                          bill.total + (bill.discount || 0)
+                                        ).toLocaleString()}
                                       </TableCell>
                                     </TableRow>
-                                  ))}
+                                    <TableRow className="hover:bg-transparent border-none">
+                                      <TableCell colSpan={3}></TableCell>
+                                      <TableCell className="text-right text-muted-foreground">
+                                        Giảm giá:
+                                      </TableCell>
+                                      <TableCell className="text-right text-destructive font-medium">
+                                        -{bill.discount.toLocaleString()}
+                                      </TableCell>
+                                    </TableRow>
+                                    <TableRow className="hover:bg-transparent border-none">
+                                      <TableCell colSpan={3}></TableCell>
+                                      <TableCell className="text-right font-bold text-lg text-foreground">
+                                        {bill.status === "returned"
+                                          ? "Tiền đã trả:"
+                                          : "Khách phải trả:"}
+                                      </TableCell>
+                                      <TableCell className="text-right font-bold text-lg text-primary">
+                                        {bill.total.toLocaleString()}
+                                      </TableCell>
+                                    </TableRow>
+                                  </TableBody>
+                                </Table>
+                              </div>
 
-                                  {/* BILL SUMMARY */}
-                                  <TableRow className="bg-muted/20 font-medium border-t-2 border-border">
-                                    <TableCell colSpan={3}></TableCell>
-                                    <TableCell className="text-right text-muted-foreground">
-                                      Tổng tiền hàng:
-                                    </TableCell>
-                                    <TableCell className="text-right font-bold text-foreground">
-                                      {(
-                                        bill.total + (bill.discount || 0)
-                                      ).toLocaleString()}
-                                    </TableCell>
-                                  </TableRow>
-                                  <TableRow className="hover:bg-transparent border-none">
-                                    <TableCell colSpan={3}></TableCell>
-                                    <TableCell className="text-right text-muted-foreground">
-                                      Giảm giá:
-                                    </TableCell>
-                                    <TableCell className="text-right text-destructive font-medium">
-                                      -{bill.discount.toLocaleString()}
-                                    </TableCell>
-                                  </TableRow>
-                                  <TableRow className="hover:bg-transparent border-none">
-                                    <TableCell colSpan={3}></TableCell>
-                                    <TableCell className="text-right font-bold text-lg text-foreground">
-                                      {bill.status === "returned"
-                                        ? "Tiền đã trả:"
-                                        : "Khách phải trả:"}
-                                    </TableCell>
-                                    <TableCell className="text-right font-bold text-lg text-primary">
-                                      {bill.total.toLocaleString()}
-                                    </TableCell>
-                                  </TableRow>
-                                </TableBody>
-                              </Table>
-                            </div>
-
-                            {/* ACTION BUTTONS */}
-                            {(bill.status === "active" ||
-                              bill.status === "completed") && (
-                              <div className="flex justify-end items-center gap-3 mt-2">
-                                {/* <Button
+                              {/* ACTION BUTTONS */}
+                              {(bill.status === "active" ||
+                                bill.status === "completed") && (
+                                <div className="flex justify-end items-center gap-3 mt-2">
+                                  {/* <Button
                                   variant="outline"
                                   size="sm"
                                   className="flex items-center gap-2 hover:bg-muted font-medium border-secondary text-seconborder-secondary"
@@ -555,108 +564,172 @@ function BillsList() {
                                   <FileText className="w-4 h-4" />
                                   Chỉnh sửa thông tin
                                 </Button> */}
-                                <PrintBillDialog bill={bill}/>
-                                <EditBill bill={bill} onSuccess={fetchBills} />
+                                  <PrintBillDialog bill={bill} />
+                                  <EditBill
+                                    bill={bill}
+                                    onSuccess={fetchBills}
+                                  />
 
-                                <ExchangeBill
-                                  originalBill={bill}
-                                  onSuccess={fetchBills}
-                                />
+                                  <ExchangeBill
+                                    originalBill={bill}
+                                    onSuccess={fetchBills}
+                                  />
 
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive hover:text-destructive-foreground transition-all font-medium"
-                                    >
-                                      <Undo2 className="w-4 h-4" />
-                                      Trả toàn bộ hàng
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Xác nhận trả hàng?
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Bạn có chắc chắn muốn hoàn trả toàn bộ
-                                        hàng cho hóa đơn{" "}
-                                        <span className="font-bold text-foreground">
-                                          {bill.id}
-                                        </span>
-                                        ? Thao tác này sẽ cập nhật trạng thái
-                                        hóa đơn và không thể hoàn tác.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Hủy</AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() =>
-                                          handleReturnBill(bill.id)
-                                        }
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive hover:text-destructive-foreground transition-all font-medium"
                                       >
-                                        Xác nhận trả hàng
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </React.Fragment>
-                );
-              }))}
+                                        <Undo2 className="w-4 h-4" />
+                                        Trả toàn bộ hàng
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                          Xác nhận trả hàng?
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Bạn có chắc chắn muốn hoàn trả toàn bộ
+                                          hàng cho hóa đơn{" "}
+                                          <span className="font-bold text-foreground">
+                                            {bill.id}
+                                          </span>
+                                          ? Thao tác này sẽ cập nhật trạng thái
+                                          hóa đơn và không thể hoàn tác.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>
+                                          Hủy
+                                        </AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() =>
+                                            handleReturnBill(bill.id)
+                                          }
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        >
+                                          Xác nhận trả hàng
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </React.Fragment>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </div>
 
         {/* PAGINATION */}
-        <div className="py-4">
-          <Pagination>
+        {/* Phân trang đã tối ưu và thêm ô điền số trang */}
+        <div className="py-4 flex flex-wrap items-center justify-between gap-4 border-t border-border mt-auto">
+          <Pagination className="w-auto mx-0">
             <PaginationContent>
+              {/* Nút Quay lại */}
               <PaginationItem>
                 <PaginationPrevious
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (currentPage > 1) setCurrentPage(currentPage - 1);
-                  }}
+                  onClick={() =>
+                    setCurrentPage((p: number) => Math.max(1, p - 1))
+                  }
+                  className={
+                    currentPage === 1
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer select-none"
+                  }
                 />
               </PaginationItem>
 
-              {/* Render số trang động */}
-              {[...Array(totalPages)].map((_, index) => (
-                <PaginationItem key={index}>
-                  <PaginationLink
-                    href="#"
-                    isActive={currentPage === index + 1}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setCurrentPage(index + 1);
-                    }}
-                  >
-                    {index + 1}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
+              {/* Render danh sách trang đã rút gọn */}
+              {totalPages > 0 &&
+                getPaginationRange(currentPage, totalPages).map(
+                  (page, index) => {
+                    if (page === "...") {
+                      return (
+                        <PaginationItem key={`dots-${index}`}>
+                          <span className="px-3 py-2 text-sm text-muted-foreground select-none">
+                            ...
+                          </span>
+                        </PaginationItem>
+                      );
+                    }
 
+                    return (
+                      <PaginationItem key={`page-${page}`}>
+                        <PaginationLink
+                          isActive={currentPage === page}
+                          onClick={() => setCurrentPage(page as number)}
+                          className="cursor-pointer select-none"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  }
+                )}
+
+              {/* Nút Tiếp theo */}
               <PaginationItem>
                 <PaginationNext
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (currentPage < totalPages)
-                      setCurrentPage(currentPage + 1);
-                  }}
+                  onClick={() =>
+                    setCurrentPage((p: number) => Math.min(totalPages, p + 1))
+                  }
+                  className={
+                    currentPage === totalPages
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer select-none"
+                  }
                 />
               </PaginationItem>
             </PaginationContent>
           </Pagination>
+
+          {/* Phần nhập số trang cần đến */}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Đi đến trang</span>
+            <Input
+              type="number"
+              min={1}
+              max={totalPages}
+              defaultValue={currentPage}
+              // Dùng key để ô input tự cập nhật lại hiển thị đúng giá trị khi click các số trang bên ngoài
+              key={currentPage}
+              className="w-16 h-9 text-center focus-visible:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const targetPage = parseInt(
+                    (e.target as HTMLInputElement).value,
+                    10
+                  );
+                  if (targetPage >= 1 && targetPage <= totalPages) {
+                    setCurrentPage(targetPage);
+                  } else {
+                    // Nếu nhập bậy thì reset về trang hiện tại
+                    (e.target as HTMLInputElement).value =
+                      currentPage.toString();
+                  }
+                }
+              }}
+              onBlur={(e) => {
+                const targetPage = parseInt(e.target.value, 10);
+                if (targetPage >= 1 && targetPage <= totalPages) {
+                  setCurrentPage(targetPage);
+                } else {
+                  e.target.value = currentPage.toString();
+                }
+              }}
+            />
+            <span>/ {totalPages}</span>
+          </div>
         </div>
       </div>
     </div>
