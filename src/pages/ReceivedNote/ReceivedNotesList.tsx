@@ -228,26 +228,6 @@ function ReceivedNotesList() {
     }
   };
 
-  // const handleSelectSubItem = (itemId: string) => {
-  //   setSelectedRows((prev) =>
-  //     prev.includes(itemId)
-  //       ? prev.filter((id) => id !== itemId)
-  //       : [...prev, itemId]
-  //   );
-  // };
-
-  // const formatVietnameseDate = (dateSource: string | Date) => {
-  //   if (!dateSource) return "N/A";
-  //   const date = new Date(dateSource);
-  //   return date.toLocaleString("vi-VN", {
-  //     day: "2-digit",
-  //     month: "2-digit",
-  //     year: "numeric",
-  //     hour: "2-digit",
-  //     minute: "2-digit",
-  //     second: "2-digit",
-  //   });
-  // };
   const getStatusStyle = (status: string) => {
     switch (status) {
       case "confirm":
@@ -408,7 +388,7 @@ function ReceivedNotesList() {
                         {note.provider?.name || "N/A"}
                       </TableCell>
                       <TableCell className="text-right font-bold">
-                        {(note.total - note.discount).toLocaleString()}
+                        {(note.debtMoney).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-center">
                         <span className={getStatusStyle(note.status)}>
@@ -547,7 +527,7 @@ function ReceivedNotesList() {
                                       Tổng tiền hàng:
                                     </TableCell>
                                     <TableCell className="text-right font-bold text-lg">
-                                      {note.total.toLocaleString()}
+                                      {(note.total + note.discount).toLocaleString()}
                                     </TableCell>
                                   </TableRow>
                                   <TableRow className="hover:bg-transparent border-t-0 border-b-0">
